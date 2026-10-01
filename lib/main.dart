@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:android_id/android_id.dart';
 
 import 'animals_roster_page.dart';
+import 'animal_weight_page.dart';
 import 'data/animal_record.dart';
 import 'data/animal_repository.dart';
 import 'data/client_routing.dart';
@@ -641,6 +642,9 @@ class ModulePage extends StatelessWidget {
                       }
                       if (entry.label == 'Perfil') {
                         return const ProfilePermissionsPage();
+                      }
+                      if (entry.label == 'Pesagem') {
+                        return const AnimalWeightPage();
                       }
                       return ModulePage(title: entry.label);
                     },
