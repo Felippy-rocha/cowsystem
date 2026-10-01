@@ -26,6 +26,7 @@ import 'package:cowsystem/data/animal_bst_repository.dart';
 import 'package:cowsystem/data/dry_matter_history_repository.dart';
 import 'package:cowsystem/data/animal_protocol_repository.dart';
 import 'package:cowsystem/data/feeding_repository.dart';
+import 'package:cowsystem/data/animal_cycles_repository.dart';
 import 'package:cowsystem/data/animal_insemination_repository.dart';
 import 'package:cowsystem/data/animal_birth_repository.dart';
 import 'package:cowsystem/data/animal_dry_off_repository.dart';
@@ -38,6 +39,11 @@ import 'package:cowsystem/data/number_format.dart';
 import 'package:cowsystem/main.dart';
 
 void main() {
+  test('gera recálculo de ciclo reprodutivo com código válido', () {
+    expect(cycleCalculateSql(37), 'EXEC SP_TB_CICLOS_CALCULAR 37;');
+    expect(() => cycleCalculateSql(0), throwsArgumentError);
+  });
+
   test('gera SQL de trato e descarga dentro dos contratos B4A', () {
     expect(
       feedingCreateSql(

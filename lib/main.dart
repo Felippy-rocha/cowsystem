@@ -20,6 +20,7 @@ import 'animal_bst_page.dart';
 import 'dry_matter_history_page.dart';
 import 'animal_protocol_page.dart';
 import 'animal_feeding_page.dart';
+import 'animal_cycles_page.dart';
 import 'data/animal_record.dart';
 import 'data/animal_repository.dart';
 import 'data/client_routing.dart';
@@ -497,6 +498,7 @@ class ModulePage extends StatelessWidget {
           _ModuleEntry('Aplicar BST', Icons.medical_services_outlined),
           _ModuleEntry('Protocolar', Icons.assignment_outlined),
           _ModuleEntry('Tratos', Icons.restaurant_outlined),
+          _ModuleEntry('Taxa de serviço', Icons.insights_outlined),
           _ModuleEntry('Aplicar tratamento', Icons.medical_services_outlined),
           _ModuleEntry('Atualizar MS', Icons.opacity_outlined),
           _ModuleEntry('Avaliação de ECC', Icons.monitor_weight_outlined),
@@ -702,6 +704,9 @@ class ModulePage extends StatelessWidget {
                       }
                       if (entry.label == 'Tratos') {
                         return const AnimalFeedingPage();
+                      }
+                      if (entry.label == 'Taxa de serviço') {
+                        return const AnimalCyclesPage();
                       }
                       if (entry.label == 'Aplicar tratamento') {
                         return const AnimalTreatmentApplicationPage();
