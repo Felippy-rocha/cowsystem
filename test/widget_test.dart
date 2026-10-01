@@ -498,6 +498,26 @@ void main() {
     );
   });
 
+  test('configura tratamentos com doença, carência e procedures B4A', () {
+    final config = treatmentsConfig();
+
+    expect(config.query, contains('INNER JOIN TB_DOENCAS'));
+    expect(config.uniqueColumn, 'TRATAMENTO');
+    expect(config.fields[2].optionsValueColumn, 'CODDOENCA');
+    expect(config.fields[2].optionsLabelColumn, 'DOENCA');
+    expect(
+      config.saveSql(5, {
+        'TRATAMENTO': 'MASTITE',
+        'COMENTARIO': "VACA D'ÁGUA",
+        'CODDOENCA': '2',
+        'CARENCIA': '3',
+      }),
+      "EXEC SP_TB_TRATAMENTOS_INSERT_UPDATE 5, N'MASTITE', "
+      "N'VACA D''ÁGUA', 2, 3;",
+    );
+    expect(config.deleteSql(5), 'EXEC SP_TB_TRATAMENTOS_DELETE 5;');
+  });
+
   test('configura tipos de IA conforme a tabela do B4A', () {
     final config = inseminationTypesConfig();
 

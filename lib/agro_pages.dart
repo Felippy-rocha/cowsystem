@@ -559,6 +559,32 @@ AgroEntityConfig suppliersConfig() => AgroEntityConfig(
   deleteSql: (id) => 'DELETE FROM TB_FORNECEDORES WHERE CODFORNECEDOR = $id;',
 );
 
+AgroEntityConfig treatmentsConfig() => AgroEntityConfig(
+  title: 'Tratamentos',
+  table: 'TB_TRATAMENTOS',
+  idColumn: 'CODTRATAMENTO',
+  uniqueColumn: 'TRATAMENTO',
+  listColumns: const ['DOENCA', 'CARENCIA'],
+  query: 'SELECT T.CODTRATAMENTO, T.TRATAMENTO, T.COMENTARIO, T.CARENCIA, T.CODDOENCA, D.DOENCA FROM TB_TRATAMENTOS T INNER JOIN TB_DOENCAS D ON D.CODDOENCA = T.CODDOENCA ORDER BY T.TRATAMENTO',
+  fields: const [
+    AgroField('TRATAMENTO', 'Tratamento', required: true),
+    AgroField('COMENTARIO', 'Comentário'),
+    AgroField(
+      'CODDOENCA',
+      'Doença',
+      required: true,
+      optionsQuery: 'SELECT CODDOENCA, DOENCA FROM TB_DOENCAS ORDER BY DOENCA',
+      optionsValueColumn: 'CODDOENCA',
+      optionsLabelColumn: 'DOENCA',
+    ),
+    AgroField('CARENCIA', 'Carência em dias', numeric: true),
+    AgroField('DOENCA', 'Doença', showInForm: false),
+  ],
+  saveSql: (id, values) =>
+      'EXEC SP_TB_TRATAMENTOS_INSERT_UPDATE $id, ${sqlText(values['TRATAMENTO'] ?? '')}, ${sqlText(values['COMENTARIO'] ?? '')}, ${sqlNumber(values['CODDOENCA'] ?? '')}, ${sqlNumber(values['CARENCIA'] ?? '')};',
+  deleteSql: (id) => 'EXEC SP_TB_TRATAMENTOS_DELETE $id;',
+);
+
 AgroEntityConfig inseminationTypesConfig() => simpleTableCatalogConfig(
   title: 'Tipos de IA',
   table: 'TB_TIPOIA',
