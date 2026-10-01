@@ -32,6 +32,7 @@ import 'package:cowsystem/data/touch_session_repository.dart';
 import 'package:cowsystem/data/herd_summary_repository.dart';
 import 'package:cowsystem/data/milk_summary_repository.dart';
 import 'package:cowsystem/data/consumption_analysis_repository.dart';
+import 'package:cowsystem/data/prevision_touch_repository.dart';
 import 'package:cowsystem/data/diet_repository.dart';
 import 'package:cowsystem/data/general_supply_inventory_repository.dart';
 import 'package:cowsystem/data/animal_insemination_repository.dart';
@@ -46,6 +47,17 @@ import 'package:cowsystem/data/number_format.dart';
 import 'package:cowsystem/main.dart';
 
 void main() {
+  test('gera previsão de toque pela data escolhida', () {
+    expect(
+      previsionTouchGenerateSql('24/05/2026'),
+      "EXEC SP_TB_PREVISAO_TOQUE_INSERT @DATA = '2026-05-24';",
+    );
+    expect(
+      () => previsionTouchGenerateSql('31/02/2026'),
+      throwsFormatException,
+    );
+  });
+
   test('gera análise de consumo mensal e diária', () {
     expect(
       consumptionAnalysisMonthlySql(dietCode: 4, period: '05/2026', lotCode: 8),

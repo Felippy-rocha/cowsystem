@@ -25,6 +25,7 @@ import 'animal_diet_page.dart';
 import 'lot_analysis_page.dart';
 import 'herd_summary_page.dart';
 import 'consumption_analysis_page.dart';
+import 'prevision_touch_page.dart';
 import 'touch_session_page.dart';
 import 'rfid_association_page.dart';
 import 'general_supply_inventory_page.dart';
@@ -737,6 +738,9 @@ class ModulePage extends StatelessWidget {
                       }
                       if (entry.label == 'Analise de consumo') {
                         return const ConsumptionAnalysisPage();
+                      }
+                      if (entry.label == 'Previsao de toque') {
+                        return const PrevisionTouchPage();
                       }
                       if (entry.label == 'Aplicar tratamento') {
                         return const AnimalTreatmentApplicationPage();
