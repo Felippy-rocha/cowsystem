@@ -17,6 +17,7 @@ import 'animal_treatment_application_page.dart';
 import 'animal_hoof_trimming_page.dart';
 import 'animal_bst_application_page.dart';
 import 'animal_bst_page.dart';
+import 'dry_matter_history_page.dart';
 import 'data/animal_record.dart';
 import 'data/animal_repository.dart';
 import 'data/client_routing.dart';
@@ -493,6 +494,7 @@ class ModulePage extends StatelessWidget {
           _ModuleEntry('Incluir BST', Icons.medical_services_outlined),
           _ModuleEntry('Aplicar BST', Icons.medical_services_outlined),
           _ModuleEntry('Aplicar tratamento', Icons.medical_services_outlined),
+          _ModuleEntry('Atualizar MS', Icons.opacity_outlined),
           _ModuleEntry('Diagnóstico gestacional', Icons.monitor_heart_outlined),
           _ModuleEntry('Parto', Icons.child_friendly_outlined),
           _ModuleEntry('Registrar desmame', Icons.swap_horiz_outlined),
@@ -691,6 +693,9 @@ class ModulePage extends StatelessWidget {
                       }
                       if (entry.label == 'Aplicar tratamento') {
                         return const AnimalTreatmentApplicationPage();
+                      }
+                      if (entry.label == 'Atualizar MS') {
+                        return const DryMatterHistoryPage();
                       }
                       if (entry.label == 'Parto') {
                         return const AnimalBirthPage();

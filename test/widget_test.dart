@@ -23,6 +23,7 @@ import 'package:cowsystem/data/animal_treatment_repository.dart';
 import 'package:cowsystem/data/animal_hoof_trimming_repository.dart';
 import 'package:cowsystem/data/animal_bst_application_repository.dart';
 import 'package:cowsystem/data/animal_bst_repository.dart';
+import 'package:cowsystem/data/dry_matter_history_repository.dart';
 import 'package:cowsystem/data/animal_insemination_repository.dart';
 import 'package:cowsystem/data/animal_birth_repository.dart';
 import 'package:cowsystem/data/animal_dry_off_repository.dart';
@@ -35,6 +36,40 @@ import 'package:cowsystem/data/number_format.dart';
 import 'package:cowsystem/main.dart';
 
 void main() {
+  test('gera procedure de inclusão e edição do histórico de matéria seca', () {
+    expect(
+      dryMatterHistorySaveSql(
+        typeCode: 1,
+        date: '22/05/2026',
+        ingredientCode: 0,
+        dietCode: 7,
+        percentage: 34.5,
+      ),
+      "EXEC SP_TB_HISTORICOMS_INSERT -1, 1, '2026-05-22', 0, 7, 34.50;",
+    );
+    expect(
+      dryMatterHistorySaveSql(
+        id: 12,
+        typeCode: 2,
+        date: '2026-05-22',
+        ingredientCode: 3,
+        dietCode: 0,
+        percentage: 88,
+      ),
+      'EXEC SP_TB_HISTORICOMS_INSERT 12, 2, \'2026-05-22\', 3, 0, 88.00;',
+    );
+    expect(
+      () => dryMatterHistorySaveSql(
+        typeCode: 1,
+        date: '31/02/2026',
+        ingredientCode: 0,
+        dietCode: 7,
+        percentage: 34.5,
+      ),
+      throwsFormatException,
+    );
+  });
+
   test('gera SQL de inclusão, edição e encerramento de ciclo BST', () {
     expect(
       bstCycleInsertSql(
