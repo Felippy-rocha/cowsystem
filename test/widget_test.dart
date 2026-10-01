@@ -17,12 +17,73 @@ import 'package:cowsystem/data/animal_details_repository.dart';
 import 'package:cowsystem/data/animal_carency_repository.dart';
 import 'package:cowsystem/data/animal_diagnosis_repository.dart';
 import 'package:cowsystem/data/animal_insemination_repository.dart';
+import 'package:cowsystem/data/animal_birth_repository.dart';
 import 'package:cowsystem/data/animal_record.dart';
 import 'package:cowsystem/data/client_routing.dart';
 import 'package:cowsystem/data/number_format.dart';
 import 'package:cowsystem/main.dart';
 
 void main() {
+  test('consulta candidatas a parto e indução conforme o B4A', () {
+    final query = animalBirthCandidatesQuery(tag: '43');
+
+    expect(query, contains('TB_PRENHEZES'));
+    expect(query, contains('TB_PREPARTO WHERE DATASAIDA IS NULL'));
+    expect(query, contains("A.STATUSREPRODUCAO = 'INDUCAO'"));
+    expect(query, contains("BRINCO) LIKE N'%43%'"));
+    expect(query, contains('UNION'));
+  });
+
+  test('gera inclusão de parto e preserva campos opcionais de natimorto', () {
+    expect(
+      animalBirthInsertSql(
+        date: '09/05/2026',
+        motherCode: 14,
+        sexCode: 1,
+        calfTag: "B'43",
+        calfLotCode: 5,
+        motherLotCode: 4,
+        breedCode: 2,
+        calfWeight: 42.5,
+        comment: "PARTO D'ÁGUA",
+        birthTypeCode: 1,
+      ),
+      "EXEC SP_TB_PARTO_INSERT @DATA = '2026-05-09', @CODANIMAL = 14, "
+      "@SEXO = 1, @BRINCO = N'B''43', @CODLOTECRIA = 5, "
+      "@CODLOTEMAE = 4, @CODRACA = 2, @PESOCRIA = '42.50', "
+      "@COMENTARIO = N'PARTO D''ÁGUA', @CODTIPOPARTO = '1';",
+    );
+    expect(
+      () => animalBirthInsertSql(
+        date: '31/02/2026',
+        motherCode: 14,
+        sexCode: 1,
+        calfTag: '',
+        calfLotCode: 0,
+        motherLotCode: 4,
+        breedCode: 0,
+        calfWeight: 0,
+        comment: '',
+        birthTypeCode: 3,
+      ),
+      throwsFormatException,
+    );
+  });
+
+  test('gera a procedure de indução conforme o formulário B4A', () {
+    expect(
+      animalInductionSql(
+        animalCode: 14,
+        date: '09/05/2026',
+        destinationLotCode: 4,
+        comment: "INDUÇÃO D'ÁGUA",
+      ),
+      "EXEC SP_TB_INDUCAO_INSERT @CODANIMAL = 14, "
+      "@DATA = '2026-05-09', @CODLOTEDESTINO = 4, "
+      "@COMENTARIO = N'INDUÇÃO D''ÁGUA';",
+    );
+  });
+
   test('filtra inseminações aptas e permite consulta ampliada', () {
     final eligible = inseminationAnimalQuery();
     expect(eligible, contains('dbo.LISTA_ANIMAIS()'));

@@ -5,6 +5,7 @@ import 'package:android_id/android_id.dart';
 import 'animals_roster_page.dart';
 import 'animal_carency_page.dart';
 import 'animal_diagnosis_page.dart';
+import 'animal_birth_page.dart';
 import 'animal_insemination_page.dart';
 import 'animal_weight_page.dart';
 import 'data/animal_record.dart';
@@ -655,6 +656,9 @@ class ModulePage extends StatelessWidget {
                       }
                       if (entry.label == 'Inseminação') {
                         return const AnimalInseminationPage();
+                      }
+                      if (entry.label == 'Parto') {
+                        return const AnimalBirthPage();
                       }
                       if (entry.label == 'Pesagem') {
                         return const AnimalWeightPage();
