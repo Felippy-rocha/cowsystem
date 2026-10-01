@@ -22,6 +22,7 @@ import 'package:cowsystem/data/animal_comment_repository.dart';
 import 'package:cowsystem/data/animal_treatment_repository.dart';
 import 'package:cowsystem/data/animal_hoof_trimming_repository.dart';
 import 'package:cowsystem/data/animal_bst_application_repository.dart';
+import 'package:cowsystem/data/animal_bst_repository.dart';
 import 'package:cowsystem/data/animal_insemination_repository.dart';
 import 'package:cowsystem/data/animal_birth_repository.dart';
 import 'package:cowsystem/data/animal_dry_off_repository.dart';
@@ -34,6 +35,42 @@ import 'package:cowsystem/data/number_format.dart';
 import 'package:cowsystem/main.dart';
 
 void main() {
+  test('gera SQL de inclusão, edição e encerramento de ciclo BST', () {
+    expect(
+      bstCycleInsertSql(
+        animalCode: 43,
+        entryDate: '22/05/2026',
+        hormoneCode: 4,
+        lactationCode: 'L-2026',
+        week: "SEMANA D'ÁGUA",
+      ),
+      contains(
+        "INSERT INTO TB_BST (CODANIMAL, DATAENTRADA, DATASAIDA, CODHORMONIO, "
+        "ATIVO, HORA_DO_REGISTRO, CODLACTACAO, SEMANA) VALUES "
+        "(43, '2026-05-22', NULL, 4, 1, dbo.cHORA_DO_REGISTRO(), "
+        "N'L-2026', N'SEMANA D''ÁGUA');",
+      ),
+    );
+    expect(
+      bstCycleUpdateSql(cycleCode: 8, hormoneCode: 2, week: 'Semana 2'),
+      contains("WHERE CODBST = 8 AND ATIVO = 1"),
+    );
+    expect(
+      bstCycleDeactivateSql(8),
+      contains('SET ATIVO = 2, DATASAIDA = GETDATE()'),
+    );
+    expect(
+      () => bstCycleInsertSql(
+        animalCode: 0,
+        entryDate: '22/05/2026',
+        hormoneCode: 4,
+        lactationCode: 'L-2026',
+        week: 'Semana 2',
+      ),
+      throwsArgumentError,
+    );
+  });
+
   test('gera lista BST para a data selecionada', () {
     expect(
       bstApplicationCreateListSql('22/05/2026'),

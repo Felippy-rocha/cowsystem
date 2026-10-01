@@ -16,6 +16,7 @@ import 'animal_weaning_page.dart';
 import 'animal_treatment_application_page.dart';
 import 'animal_hoof_trimming_page.dart';
 import 'animal_bst_application_page.dart';
+import 'animal_bst_page.dart';
 import 'data/animal_record.dart';
 import 'data/animal_repository.dart';
 import 'data/client_routing.dart';
@@ -489,6 +490,7 @@ class ModulePage extends StatelessWidget {
           _ModuleEntry('Controle leiteiro', Icons.water_drop_outlined),
           _ModuleEntry('Pesagem', Icons.monitor_weight_outlined),
           _ModuleEntry('Inseminação', Icons.science_outlined),
+          _ModuleEntry('Incluir BST', Icons.medical_services_outlined),
           _ModuleEntry('Aplicar BST', Icons.medical_services_outlined),
           _ModuleEntry('Aplicar tratamento', Icons.medical_services_outlined),
           _ModuleEntry('Diagnóstico gestacional', Icons.monitor_heart_outlined),
@@ -680,6 +682,9 @@ class ModulePage extends StatelessWidget {
                       }
                       if (entry.label == 'Inseminação') {
                         return const AnimalInseminationPage();
+                      }
+                      if (entry.label == 'Incluir BST') {
+                        return const AnimalBstPage();
                       }
                       if (entry.label == 'Aplicar BST') {
                         return const AnimalBstApplicationPage();
