@@ -25,6 +25,7 @@ import 'package:cowsystem/data/animal_bst_application_repository.dart';
 import 'package:cowsystem/data/animal_bst_repository.dart';
 import 'package:cowsystem/data/dry_matter_history_repository.dart';
 import 'package:cowsystem/data/animal_protocol_repository.dart';
+import 'package:cowsystem/data/feeding_repository.dart';
 import 'package:cowsystem/data/animal_insemination_repository.dart';
 import 'package:cowsystem/data/animal_birth_repository.dart';
 import 'package:cowsystem/data/animal_dry_off_repository.dart';
@@ -37,6 +38,47 @@ import 'package:cowsystem/data/number_format.dart';
 import 'package:cowsystem/main.dart';
 
 void main() {
+  test('gera SQL de trato e descarga dentro dos contratos B4A', () {
+    expect(
+      feedingCreateSql(
+        dietCode: 4,
+        date: '23/05/2026',
+        employeeCode: 2,
+        assistantCode: 3,
+        animalCount: 50,
+      ),
+      "EXEC SP_TB_TRATO_INSERT2 -1, 4, '2026-05-23', 2, 3, 50;",
+    );
+    expect(
+      feedingDischargeSql(
+        date: '23/05/2026',
+        feedingCode: 5,
+        lotCode: 8,
+        total: 120.5,
+      ),
+      "EXEC SP_TB_CONSUMO_INSERT -1, '2026-05-23', 5, 8, 120.50;",
+    );
+    expect(
+      feedingDischargeUpdateSql(
+        dischargeCode: 9,
+        date: '23/05/2026',
+        feedingCode: 5,
+        lotCode: 10,
+        total: 60,
+      ),
+      "EXEC SP_TB_CONSUMO_UPDATE 9, '2026-05-23', 5, 10, 60.00;",
+    );
+    expect(
+      () => feedingDischargeSql(
+        date: '31/02/2026',
+        feedingCode: 5,
+        lotCode: 8,
+        total: 1,
+      ),
+      throwsFormatException,
+    );
+  });
+
   test('gera SQL do protocolo e das ações de tarefa conforme B4A', () {
     expect(
       protocolApplicationSql(
