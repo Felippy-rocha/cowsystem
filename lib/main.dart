@@ -6,6 +6,7 @@ import 'animals_roster_page.dart';
 import 'animal_carency_page.dart';
 import 'animal_diagnosis_page.dart';
 import 'animal_birth_page.dart';
+import 'animal_body_condition_page.dart';
 import 'animal_dry_off_page.dart';
 import 'animal_insemination_page.dart';
 import 'animal_precalving_page.dart';
@@ -656,6 +657,9 @@ class ModulePage extends StatelessWidget {
                       }
                       if (entry.label == 'Diagnóstico gestacional') {
                         return const AnimalDiagnosisPage();
+                      }
+                      if (entry.label == 'Avaliação de ECC') {
+                        return const AnimalBodyConditionPage();
                       }
                       if (entry.label == 'Inseminação') {
                         return const AnimalInseminationPage();

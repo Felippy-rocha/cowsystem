@@ -16,6 +16,7 @@ import 'package:cowsystem/animal_selection_menu.dart';
 import 'package:cowsystem/data/animal_details_repository.dart';
 import 'package:cowsystem/data/animal_carency_repository.dart';
 import 'package:cowsystem/data/animal_diagnosis_repository.dart';
+import 'package:cowsystem/data/animal_body_condition_repository.dart';
 import 'package:cowsystem/data/animal_insemination_repository.dart';
 import 'package:cowsystem/data/animal_birth_repository.dart';
 import 'package:cowsystem/data/animal_dry_off_repository.dart';
@@ -26,6 +27,37 @@ import 'package:cowsystem/data/number_format.dart';
 import 'package:cowsystem/main.dart';
 
 void main() {
+  test('protege exclusão de sessão ECC com avaliações informadas', () {
+    expect(
+      bodyConditionCreateSessionSql('14/05/2026', 5),
+      "EXEC SP_TB_ESCORE_INSERT '2026-05-14', 5;",
+    );
+    expect(
+      bodyConditionUpdateScoreSql(71, 3),
+      'EXEC SP_TB_ESCORE_UPDATE 71, 3.00;',
+    );
+    expect(
+      () => bodyConditionUpdateScoreSql(71, double.infinity),
+      throwsArgumentError,
+    );
+  });
+
+  test('gera comandos de sessão e edição de ECC conforme o B4A', () {
+    expect(
+      bodyConditionCreateSessionSql('13/05/2026', 7),
+      "EXEC SP_TB_ESCORE_INSERT '2026-05-13', 7;",
+    );
+    expect(
+      bodyConditionUpdateScoreSql(42, 3.5),
+      'EXEC SP_TB_ESCORE_UPDATE 42, 3.50;',
+    );
+    expect(() => bodyConditionUpdateScoreSql(42, -1), throwsArgumentError);
+    expect(
+      () => bodyConditionCreateSessionSql('31/02/2026', 7),
+      throwsFormatException,
+    );
+  });
+
   test('consulta vacas elegíveis para pré-parto conforme o B4A', () {
     final query = animalPrecalvingQuery(tag: '43');
 
