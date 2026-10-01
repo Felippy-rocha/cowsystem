@@ -4,6 +4,7 @@ import 'package:android_id/android_id.dart';
 
 import 'animals_roster_page.dart';
 import 'animal_carency_page.dart';
+import 'animal_diagnosis_page.dart';
 import 'animal_weight_page.dart';
 import 'data/animal_record.dart';
 import 'data/animal_repository.dart';
@@ -647,6 +648,9 @@ class ModulePage extends StatelessWidget {
                       }
                       if (entry.label == 'Animais carência') {
                         return const AnimalCarencyPage();
+                      }
+                      if (entry.label == 'Diagnóstico gestacional') {
+                        return const AnimalDiagnosisPage();
                       }
                       if (entry.label == 'Pesagem') {
                         return const AnimalWeightPage();

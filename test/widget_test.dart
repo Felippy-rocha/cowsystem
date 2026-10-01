@@ -15,12 +15,50 @@ import 'package:cowsystem/animal_lactation_grid.dart';
 import 'package:cowsystem/animal_selection_menu.dart';
 import 'package:cowsystem/data/animal_details_repository.dart';
 import 'package:cowsystem/data/animal_carency_repository.dart';
+import 'package:cowsystem/data/animal_diagnosis_repository.dart';
 import 'package:cowsystem/data/animal_record.dart';
 import 'package:cowsystem/data/client_routing.dart';
 import 'package:cowsystem/data/number_format.dart';
 import 'package:cowsystem/main.dart';
 
 void main() {
+  test('aplica resultados de diagnóstico permitidos pelo B4A', () {
+    expect(diagnosisResultIds('PEV', 'INSEMINADA'), [4, 5]);
+    expect(diagnosisResultIds('VAZIA', 'VAZIA'), [2, 4, 5]);
+    expect(diagnosisResultIds('AVALIAÇÃO', 'VAZIA'), [6]);
+    expect(diagnosisResultIds('TOQUE', 'TETF'), [2, 4, 5, 6]);
+    expect(diagnosisResultIds('TOQUE', 'PRENHA'), [1, 2, 3]);
+  });
+
+  test('gera comandos de diagnóstico compatíveis com o B4A', () {
+    expect(
+      diagnosisCreateSessionSql('07/05/2026', 9),
+      "EXEC SP_TB_TOQUE_INSERT @DATA = '2026-05-07', @CODFUNCIONARIO = 9;",
+    );
+    expect(
+      diagnosisAddAnimalSql(4, 43),
+      'EXEC SP_TB_TOQUE_INSERT_INDIVIDUAL @CODTOQUE = 4, @CODANIMAL = 43;',
+    );
+    expect(
+      diagnosisSaveResultSql(12, '2026-05-07', 2, "VACA D'ÁGUA"),
+      "EXEC SP_TB_TOQUE_CADASTRAR @ID_TOQUE_DETALHES = 12, "
+      "@DATATOQUE = '2026-05-07', @RESULTADOTOQUE = 2, "
+      "@COMENTARIO = N'VACA D''ÁGUA';",
+    );
+    expect(
+      diagnosisUndoResultSql(12),
+      'EXEC SP_TB_TOQUE_DESFAZER @ID_TOQUE_DETALHES = 12;',
+    );
+    expect(
+      diagnosisDeleteDetailSql(12),
+      'DELETE FROM TB_TOQUE_DETALHES WHERE ID = 12;',
+    );
+    expect(
+      () => diagnosisCreateSessionSql('31/02/2026', 9),
+      throwsFormatException,
+    );
+  });
+
   test('monta a consulta paginada de carências com filtros escapados', () {
     final query = animalCarencyQuery(
       tag: "A'43",
