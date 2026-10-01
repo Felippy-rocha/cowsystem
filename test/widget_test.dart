@@ -74,6 +74,18 @@ void main() {
     );
   });
 
+  test('gera associação de chip RFID com escape e validação', () {
+    expect(
+      animalChipAssociationSql(43, '982000123'),
+      "EXEC SP_TB_ANIMAIS_INCLUIR_CHIP 43, '982000123';",
+    );
+    expect(
+      animalChipAssociationSql(43, "98'200"),
+      "EXEC SP_TB_ANIMAIS_INCLUIR_CHIP 43, '98''200';",
+    );
+    expect(() => animalChipAssociationSql(0, '982000123'), throwsArgumentError);
+  });
+
   test('gera procedimentos distintos para registrar e estornar aborto', () {
     expect(
       abortionRegisterSql(

@@ -63,6 +63,22 @@ class AnimalRepository {
     );
   }
 
+  Future<void> associateChip({
+    required int animalCode,
+    required String chipCode,
+  }) async {
+    await _soapClient.callResult(
+      action: 'ExecSql',
+      password: const String.fromEnvironment('COWSYSTEM_SOAP_PASSWORD'),
+      body:
+          '<xSql>${_escape(animalChipAssociationSql(animalCode, chipCode))}</xSql>'
+          '<Login>FVR</Login>'
+          '<Senha>${_escape(const String.fromEnvironment('COWSYSTEM_SOAP_PASSWORD'))}</Senha>'
+          '<Sufixo>${_escape(_soapClient.suffix)}</Sufixo>'
+          '<BancoLocal>false</BancoLocal>',
+    );
+  }
+
   String _animalsQuery(String where) {
     final condition = where.trim().isEmpty ? 'WHERE ATIVO = 1' : where;
     return 'SELECT * FROM dbo.LISTA_ANIMAIS() $condition '
@@ -134,4 +150,13 @@ String animalLotTransferSql({
       'HORA_DO_REGISTRO = dbo.cHORA_DO_REGISTRO() '
       'WHERE CODANIMAL ${codes.length == 1 ? '= ${codes.single}' : 'IN ($animals)'}'
       '$currentLotFilter;';
+}
+
+String animalChipAssociationSql(int animalCode, String chipCode) {
+  final value = chipCode.trim();
+  if (animalCode <= 0 || value.isEmpty) {
+    throw ArgumentError('Animal e chip são obrigatórios.');
+  }
+  return 'EXEC SP_TB_ANIMAIS_INCLUIR_CHIP $animalCode, '
+      "'${value.replaceAll("'", "''")}';";
 }

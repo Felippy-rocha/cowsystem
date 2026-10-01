@@ -10,6 +10,7 @@ import 'data/animal_repository.dart';
 import 'data/client_routing.dart';
 import 'data/lot_record.dart';
 import 'data/lot_repository.dart';
+import 'data/permission_repository.dart';
 import 'data/soap_client.dart';
 
 class AnimalRosterPage extends StatefulWidget {
@@ -460,6 +461,10 @@ class _AnimalRosterPageState extends State<AnimalRosterPage> {
       await _discardAnimal(animals.single);
       return;
     }
+    if (action == AnimalSelectionAction.associateChip && animals.length == 1) {
+      await _associateChip(animals.single);
+      return;
+    }
     final option = animalSelectionMenuOptions(animals)
         .firstWhere((item) => item.action == action);
     ScaffoldMessenger.of(context)
@@ -694,6 +699,78 @@ class _AnimalRosterPageState extends State<AnimalRosterPage> {
   String _formatDateForDisplay(DateTime value) =>
       '${value.day.toString().padLeft(2, '0')}/'
       '${value.month.toString().padLeft(2, '0')}/${value.year}';
+
+  Future<void> _associateChip(AnimalRecord animal) async {
+    final permissions = PermissionRepository(soapClient: _soapClient);
+    try {
+      if (ClientRoutingSession.profileCode <= 0) {
+        _showRosterMessage('Seu perfil não autoriza associar chips.');
+        return;
+      }
+      final catalog = await permissions.fetchPermissionCatalog();
+      final definitions = catalog.where((permission) {
+        final routine = permission.routine.trim().toUpperCase();
+        final action = permission.action.trim().toUpperCase();
+        return routine == 'ANIMAIS' &&
+            (action.contains('CHIP') || action.contains('RFID'));
+      });
+      final profilePermissions = await permissions.fetchProfilePermissions(
+        ClientRoutingSession.profileCode,
+      );
+      if (!mounted) return;
+      final allowed = definitions.any(
+        (permission) => profilePermissions[permission.code] == true,
+      );
+      if (!allowed) {
+        _showRosterMessage('Seu perfil não autoriza associar chips.');
+        return;
+      }
+      final controller = TextEditingController(text: animal.electronicTag);
+      final chipCode = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Associar chip · brinco ${animal.tag}'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Código do chip RFID',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final value = controller.text.trim();
+                if (value.isNotEmpty) Navigator.pop(context, value);
+              },
+              child: const Text('Associar'),
+            ),
+          ],
+        ),
+      );
+      controller.dispose();
+      if (chipCode == null || !mounted) return;
+      setState(() => _loading = true);
+      await _repository.associateChip(
+        animalCode: animal.animalCode,
+        chipCode: chipCode,
+      );
+      await _load();
+    } on SoapException catch (error) {
+      if (mounted) {
+        setState(() {
+          _error = error.message;
+          _loading = false;
+        });
+      }
+    }
+  }
 
   void _toggleGridAnimal(AnimalRecord animal) {
     if (animal.animalCode <= 0) return;
