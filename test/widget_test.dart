@@ -28,6 +28,7 @@ import 'package:cowsystem/data/animal_protocol_repository.dart';
 import 'package:cowsystem/data/feeding_repository.dart';
 import 'package:cowsystem/data/animal_cycles_repository.dart';
 import 'package:cowsystem/data/medication_inventory_repository.dart';
+import 'package:cowsystem/data/general_supply_inventory_repository.dart';
 import 'package:cowsystem/data/animal_insemination_repository.dart';
 import 'package:cowsystem/data/animal_birth_repository.dart';
 import 'package:cowsystem/data/animal_dry_off_repository.dart';
@@ -40,6 +41,27 @@ import 'package:cowsystem/data/number_format.dart';
 import 'package:cowsystem/main.dart';
 
 void main() {
+  test('gera procedures de criação e conferência de insumos gerais', () {
+    expect(
+      generalSupplyInventoryCreateSql(6),
+      'EXEC SP_TB_INVENTARIO_INSUMOSGERAIS_CRIAR 6;',
+    );
+    expect(
+      generalSupplyInventoryConfirmSql(
+        id: 31,
+        description: "ADUBO D'ÁGUA",
+        description2: 'Saco 25 kg',
+        description3: '',
+        type: 'FERTILIZANTE',
+        minimumStock: 4,
+        stock: 6.5,
+      ),
+      "EXEC SP_TB_INVENTARIO_INSUMOSGERAIS_CONFERIR 31, "
+      "N'ADUBO D''ÁGUA', N'Saco 25 kg', N'', N'FERTILIZANTE', 4.00, 6.50;",
+    );
+    expect(() => generalSupplyInventoryCreateSql(0), throwsArgumentError);
+  });
+
   test('gera procedures de abertura e conferência do inventário', () {
     expect(
       medicationInventoryCreateSql(),
