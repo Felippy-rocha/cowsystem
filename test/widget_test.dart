@@ -21,6 +21,7 @@ import 'package:cowsystem/data/animal_abortion_repository.dart';
 import 'package:cowsystem/data/animal_comment_repository.dart';
 import 'package:cowsystem/data/animal_treatment_repository.dart';
 import 'package:cowsystem/data/animal_hoof_trimming_repository.dart';
+import 'package:cowsystem/data/animal_bst_application_repository.dart';
 import 'package:cowsystem/data/animal_insemination_repository.dart';
 import 'package:cowsystem/data/animal_birth_repository.dart';
 import 'package:cowsystem/data/animal_dry_off_repository.dart';
@@ -33,6 +34,29 @@ import 'package:cowsystem/data/number_format.dart';
 import 'package:cowsystem/main.dart';
 
 void main() {
+  test('gera lista BST para a data selecionada', () {
+    expect(
+      bstApplicationCreateListSql('22/05/2026'),
+      "EXEC SP_TB_BST_APLICACAO_INSERT '2026-05-22';",
+    );
+    expect(
+      bstApplicationMarkAppliedSql(15),
+      contains('UPDATE TB_BST_APLICACAO SET APLICACAO = 2'),
+    );
+    expect(
+      bstApplicationMarkAppliedSql(15),
+      contains('WHERE ID = 15 AND APLICACAO <> 2'),
+    );
+    expect(
+      bstApplicationDeletePendingSql(15),
+      'DELETE FROM TB_BST_APLICACAO WHERE ID = 15 AND APLICACAO <> 2;',
+    );
+    expect(
+      () => bstApplicationCreateListSql('31/02/2026'),
+      throwsFormatException,
+    );
+  });
+
   test('gera procedure de casqueamento com os campos do B4A', () {
     expect(
       hoofTrimmingInsertSql(
