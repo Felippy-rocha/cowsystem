@@ -45,6 +45,7 @@ class AgroEntityConfig {
     required this.deleteSql,
     this.uniqueColumn,
     this.listColumns = const [],
+    this.childConfig,
   });
 
   final String title;
@@ -54,6 +55,7 @@ class AgroEntityConfig {
   final List<AgroField> fields;
   final String? uniqueColumn;
   final List<String> listColumns;
+  final AgroEntityConfig Function(int parentId)? childConfig;
   final String Function(int id, Map<String, String> values) saveSql;
   final String Function(int id) deleteSql;
 }

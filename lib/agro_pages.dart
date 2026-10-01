@@ -200,6 +200,8 @@ class _AgroCatalogPageState extends State<AgroCatalogPage> {
       ),
       trailing: PopupMenuButton<String>(
         itemBuilder: (_) => [
+          if (widget.config.childConfig != null)
+            const PopupMenuItem(value: 'details', child: Text('Itens do protocolo')),
           PopupMenuItem(
             value: 'edit',
             enabled: _actionAllowed('ALTERAR'),
@@ -214,6 +216,16 @@ class _AgroCatalogPageState extends State<AgroCatalogPage> {
         onSelected: (action) {
           if (action == 'edit') _editRow(row);
           if (action == 'delete') _deleteRow(id);
+          if (action == 'details') {
+            final childConfig = widget.config.childConfig?.call(id);
+            if (childConfig != null) {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => AgroCatalogPage(config: childConfig),
+                ),
+              );
+            }
+          }
         },
       ),
     );
@@ -580,9 +592,25 @@ AgroEntityConfig treatmentsConfig() => AgroEntityConfig(
     AgroField('CARENCIA', 'Carência em dias', numeric: true),
     AgroField('DOENCA', 'Doença', showInForm: false),
   ],
+  childConfig: treatmentDetailsConfig,
   saveSql: (id, values) =>
       'EXEC SP_TB_TRATAMENTOS_INSERT_UPDATE $id, ${sqlText(values['TRATAMENTO'] ?? '')}, ${sqlText(values['COMENTARIO'] ?? '')}, ${sqlNumber(values['CODDOENCA'] ?? '')}, ${sqlNumber(values['CARENCIA'] ?? '')};',
   deleteSql: (id) => 'EXEC SP_TB_TRATAMENTOS_DELETE $id;',
+);
+
+AgroEntityConfig treatmentDetailsConfig(int treatmentCode) => AgroEntityConfig(
+  title: 'Itens do tratamento',
+  table: 'TB_TRATAMENTOS_DETALHES',
+  idColumn: 'ID',
+  query: 'SELECT ID, CODTRATAMENTO, DESCRICAO, LINHADETEMPO, TEMPO FROM TB_TRATAMENTOS_DETALHES WHERE CODTRATAMENTO = $treatmentCode ORDER BY TEMPO',
+  fields: const [
+    AgroField('DESCRICAO', 'Descrição', required: true),
+    AgroField('LINHADETEMPO', 'Linha do tempo', required: true),
+    AgroField('TEMPO', 'Tempo/ordem', numeric: true, required: true),
+  ],
+  saveSql: (id, values) =>
+      'EXEC SP_TB_TRATAMENTOS_DETALHES_INSERT_UPDATE $id, $treatmentCode, ${sqlText(values['DESCRICAO'] ?? '')}, ${sqlText(values['LINHADETEMPO'] ?? '')}, ${sqlNumber(values['TEMPO'] ?? '')};',
+  deleteSql: (id) => 'EXEC SP_TB_TRATAMENTOS_DETALHES_DELETE $id;',
 );
 
 AgroEntityConfig inseminationTypesConfig() => simpleTableCatalogConfig(

@@ -19,6 +19,7 @@ import 'package:cowsystem/data/animal_diagnosis_repository.dart';
 import 'package:cowsystem/data/animal_body_condition_repository.dart';
 import 'package:cowsystem/data/animal_abortion_repository.dart';
 import 'package:cowsystem/data/animal_comment_repository.dart';
+import 'package:cowsystem/data/animal_treatment_repository.dart';
 import 'package:cowsystem/data/animal_insemination_repository.dart';
 import 'package:cowsystem/data/animal_birth_repository.dart';
 import 'package:cowsystem/data/animal_dry_off_repository.dart';
@@ -31,6 +32,28 @@ import 'package:cowsystem/data/number_format.dart';
 import 'package:cowsystem/main.dart';
 
 void main() {
+  test('gera tarefa de tratamento com data e horário ISO seguros', () {
+    expect(
+      animalTreatmentTaskSql(
+        date: '22/05/2026',
+        time: '08:30',
+        treatmentCode: 3,
+        animalCode: 43,
+      ),
+      "EXEC SP_TB_TAREFAS_INSERT_TRATAMENTO "
+      "'2026-05-22T08:30:00', '08:30', 3, 43;",
+    );
+    expect(
+      () => animalTreatmentTaskSql(
+        date: '22/05/2026',
+        time: '25:10',
+        treatmentCode: 3,
+        animalCode: 43,
+      ),
+      throwsFormatException,
+    );
+  });
+
   test('gera inclusão e alteração de comentário conforme o B4A', () {
     final insert = animalCommentSaveSql(
       id: null,
@@ -516,6 +539,22 @@ void main() {
       "N'VACA D''ÁGUA', 2, 3;",
     );
     expect(config.deleteSql(5), 'EXEC SP_TB_TRATAMENTOS_DELETE 5;');
+  });
+
+  test('configura itens do protocolo de tratamento vinculados ao pai', () {
+    final config = treatmentDetailsConfig(6);
+
+    expect(config.query, contains('WHERE CODTRATAMENTO = 6 ORDER BY TEMPO'));
+    expect(
+      config.saveSql(2, {
+        'DESCRICAO': "1 comprimido d'água",
+        'LINHADETEMPO': 'MANHÃ',
+        'TEMPO': '2',
+      }),
+      "EXEC SP_TB_TRATAMENTOS_DETALHES_INSERT_UPDATE 2, 6, "
+      "N'1 comprimido d''água', N'MANHÃ', 2;",
+    );
+    expect(config.deleteSql(2), 'EXEC SP_TB_TRATAMENTOS_DETALHES_DELETE 2;');
   });
 
   test('configura tipos de IA conforme a tabela do B4A', () {

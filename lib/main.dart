@@ -13,6 +13,7 @@ import 'animal_insemination_page.dart';
 import 'animal_precalving_page.dart';
 import 'animal_weight_page.dart';
 import 'animal_weaning_page.dart';
+import 'animal_treatment_application_page.dart';
 import 'data/animal_record.dart';
 import 'data/animal_repository.dart';
 import 'data/client_routing.dart';
@@ -486,6 +487,7 @@ class ModulePage extends StatelessWidget {
           _ModuleEntry('Controle leiteiro', Icons.water_drop_outlined),
           _ModuleEntry('Pesagem', Icons.monitor_weight_outlined),
           _ModuleEntry('Inseminação', Icons.science_outlined),
+          _ModuleEntry('Aplicar tratamento', Icons.medical_services_outlined),
           _ModuleEntry('Diagnóstico gestacional', Icons.monitor_heart_outlined),
           _ModuleEntry('Parto', Icons.child_friendly_outlined),
           _ModuleEntry('Registrar desmame', Icons.swap_horiz_outlined),
@@ -675,6 +677,9 @@ class ModulePage extends StatelessWidget {
                       }
                       if (entry.label == 'Inseminação') {
                         return const AnimalInseminationPage();
+                      }
+                      if (entry.label == 'Aplicar tratamento') {
+                        return const AnimalTreatmentApplicationPage();
                       }
                       if (entry.label == 'Parto') {
                         return const AnimalBirthPage();
