@@ -27,6 +27,7 @@ import 'package:cowsystem/data/dry_matter_history_repository.dart';
 import 'package:cowsystem/data/animal_protocol_repository.dart';
 import 'package:cowsystem/data/feeding_repository.dart';
 import 'package:cowsystem/data/animal_cycles_repository.dart';
+import 'package:cowsystem/data/medication_inventory_repository.dart';
 import 'package:cowsystem/data/animal_insemination_repository.dart';
 import 'package:cowsystem/data/animal_birth_repository.dart';
 import 'package:cowsystem/data/animal_dry_off_repository.dart';
@@ -39,6 +40,38 @@ import 'package:cowsystem/data/number_format.dart';
 import 'package:cowsystem/main.dart';
 
 void main() {
+  test('gera procedures de abertura e conferência do inventário', () {
+    expect(
+      medicationInventoryCreateSql(),
+      'EXEC SP_TB_INVENTARIO_MEDICAMENTOS_CRIAR;',
+    );
+    expect(
+      medicationInventoryConfirmSql(
+        id: 12,
+        medication: "ANTIBIÓTICO D'ÁGUA",
+        option1: '10 ml',
+        option2: '',
+        option3: 'IM',
+        minimumStock: 5,
+        stock: 7.5,
+      ),
+      "EXEC SP_TB_INVENTARIO_MEDICAMENTOS_CONFERIR 12, "
+      "N'ANTIBIÓTICO D''ÁGUA', N'10 ml', N'', N'IM', 5.00, 7.50;",
+    );
+    expect(
+      () => medicationInventoryConfirmSql(
+        id: 0,
+        medication: 'Produto',
+        option1: '',
+        option2: '',
+        option3: '',
+        minimumStock: 1,
+        stock: 1,
+      ),
+      throwsArgumentError,
+    );
+  });
+
   test('gera recálculo de ciclo reprodutivo com código válido', () {
     expect(cycleCalculateSql(37), 'EXEC SP_TB_CICLOS_CALCULAR 37;');
     expect(() => cycleCalculateSql(0), throwsArgumentError);

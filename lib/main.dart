@@ -21,6 +21,7 @@ import 'dry_matter_history_page.dart';
 import 'animal_protocol_page.dart';
 import 'animal_feeding_page.dart';
 import 'animal_cycles_page.dart';
+import 'medication_inventory_page.dart';
 import 'data/animal_record.dart';
 import 'data/animal_repository.dart';
 import 'data/client_routing.dart';
@@ -496,6 +497,7 @@ class ModulePage extends StatelessWidget {
           _ModuleEntry('Inseminação', Icons.science_outlined),
           _ModuleEntry('Incluir BST', Icons.medical_services_outlined),
           _ModuleEntry('Aplicar BST', Icons.medical_services_outlined),
+          _ModuleEntry('Inventariar medicamentos', Icons.inventory_2_outlined),
           _ModuleEntry('Protocolar', Icons.assignment_outlined),
           _ModuleEntry('Tratos', Icons.restaurant_outlined),
           _ModuleEntry('Taxa de serviço', Icons.insights_outlined),
@@ -695,6 +697,9 @@ class ModulePage extends StatelessWidget {
                       }
                       if (entry.label == 'Incluir BST') {
                         return const AnimalBstPage();
+                      }
+                      if (entry.label == 'Inventariar medicamentos') {
+                        return const MedicationInventoryPage();
                       }
                       if (entry.label == 'Aplicar BST') {
                         return const AnimalBstApplicationPage();
