@@ -20,6 +20,7 @@ import 'package:cowsystem/data/animal_body_condition_repository.dart';
 import 'package:cowsystem/data/animal_abortion_repository.dart';
 import 'package:cowsystem/data/animal_comment_repository.dart';
 import 'package:cowsystem/data/animal_treatment_repository.dart';
+import 'package:cowsystem/data/animal_hoof_trimming_repository.dart';
 import 'package:cowsystem/data/animal_insemination_repository.dart';
 import 'package:cowsystem/data/animal_birth_repository.dart';
 import 'package:cowsystem/data/animal_dry_off_repository.dart';
@@ -32,6 +33,43 @@ import 'package:cowsystem/data/number_format.dart';
 import 'package:cowsystem/main.dart';
 
 void main() {
+  test('gera procedure de casqueamento com os campos do B4A', () {
+    expect(
+      hoofTrimmingInsertSql(
+        date: '22/05/2026',
+        animalCode: 43,
+        employeeCode: 2,
+        assistantCode: 5,
+        typeCode: 1,
+        comment: "DOR D'ÁGUA",
+      ),
+      "EXEC SP_TB_CASQUEAMENTO_INSERT -1, '2026-05-22', "
+      "43, 2, 5, 1, N'DOR D''ÁGUA';",
+    );
+    expect(
+      () => hoofTrimmingInsertSql(
+        date: '31/02/2026',
+        animalCode: 43,
+        employeeCode: 2,
+        assistantCode: 5,
+        typeCode: 1,
+        comment: '',
+      ),
+      throwsFormatException,
+    );
+    expect(
+      () => hoofTrimmingInsertSql(
+        date: '2026-05-22',
+        animalCode: 0,
+        employeeCode: 2,
+        assistantCode: 5,
+        typeCode: 1,
+        comment: '',
+      ),
+      throwsArgumentError,
+    );
+  });
+
   test('gera tarefa de tratamento com data e horário ISO seguros', () {
     expect(
       animalTreatmentTaskSql(

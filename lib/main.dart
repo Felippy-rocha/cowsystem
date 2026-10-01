@@ -14,6 +14,7 @@ import 'animal_precalving_page.dart';
 import 'animal_weight_page.dart';
 import 'animal_weaning_page.dart';
 import 'animal_treatment_application_page.dart';
+import 'animal_hoof_trimming_page.dart';
 import 'data/animal_record.dart';
 import 'data/animal_repository.dart';
 import 'data/client_routing.dart';
@@ -695,6 +696,9 @@ class ModulePage extends StatelessWidget {
                       }
                       if (entry.label == 'Pesagem') {
                         return const AnimalWeightPage();
+                      }
+                      if (entry.label == 'Casqueamento') {
+                        return const AnimalHoofTrimmingPage();
                       }
                       return ModulePage(title: entry.label);
                     },
