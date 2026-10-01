@@ -8,6 +8,7 @@ import 'animal_diagnosis_page.dart';
 import 'animal_birth_page.dart';
 import 'animal_insemination_page.dart';
 import 'animal_weight_page.dart';
+import 'animal_weaning_page.dart';
 import 'data/animal_record.dart';
 import 'data/animal_repository.dart';
 import 'data/client_routing.dart';
@@ -659,6 +660,9 @@ class ModulePage extends StatelessWidget {
                       }
                       if (entry.label == 'Parto') {
                         return const AnimalBirthPage();
+                      }
+                      if (entry.label == 'Registrar desmame') {
+                        return const AnimalWeaningPage();
                       }
                       if (entry.label == 'Pesagem') {
                         return const AnimalWeightPage();

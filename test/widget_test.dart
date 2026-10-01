@@ -84,6 +84,29 @@ void main() {
     );
   });
 
+  test('consulta bezerros aptos e permite histórico de desmame', () {
+    final pending = weaningCandidateQuery(tag: 'B43');
+    expect(pending, contains('TB_PARTOS P'));
+    expect(pending, contains('P.PESODESMAME, 0) = 0'));
+    expect(pending, contains("A.BRINCO = N'B43'"));
+
+    final history = weaningCandidateQuery(includeWeaned: true);
+    expect(history, isNot(contains('P.PESODESMAME, 0) = 0')));
+  });
+
+  test('gera atualização do desmame conforme o B4A', () {
+    expect(
+      animalWeaningSql(
+        calfCode: 61,
+        date: '10/05/2026',
+        weight: 84.5,
+        destinationLotCode: 9,
+      ),
+      "EXEC SP_TB_PARTO_DESMAME @DATA = '2026-05-10', @CODANIMAL = 61, "
+      "@CODLOTEDESTINO = 9, @PESODESMAME = '84.50';",
+    );
+  });
+
   test('filtra inseminações aptas e permite consulta ampliada', () {
     final eligible = inseminationAnimalQuery();
     expect(eligible, contains('dbo.LISTA_ANIMAIS()'));

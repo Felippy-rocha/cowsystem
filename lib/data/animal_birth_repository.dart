@@ -43,6 +43,34 @@ class AnimalBirthCandidate {
   }
 }
 
+class WeaningCandidate {
+  const WeaningCandidate({
+    required this.animalCode,
+    required this.tag,
+    required this.birthDate,
+    required this.lot,
+    required this.daysOld,
+    required this.weaned,
+  });
+
+  final int animalCode;
+  final String tag;
+  final String birthDate;
+  final String lot;
+  final int daysOld;
+  final bool weaned;
+
+  factory WeaningCandidate.fromJson(Map<String, dynamic> json) =>
+      WeaningCandidate(
+        animalCode: _birthInt(_birthField(json, 'CODANIMAL')),
+        tag: '${_birthField(json, 'BRINCO') ?? ''}'.trim(),
+        birthDate: '${_birthField(json, 'DATANASCIMENTO') ?? ''}'.trim(),
+        lot: '${_birthField(json, 'LOTE') ?? ''}'.trim(),
+        daysOld: _birthInt(_birthField(json, 'DIASNASCIDA')),
+        weaned: _birthDouble(_birthField(json, 'PESODESMAME')) > 0,
+      );
+}
+
 class AnimalBirthRepository {
   AnimalBirthRepository({required this.soapClient});
 
@@ -52,6 +80,13 @@ class AnimalBirthRepository {
     final rows = await _query(animalBirthCandidatesQuery(tag: tag));
     return rows.map(AnimalBirthCandidate.fromJson).toList(growable: false);
   }
+
+  Future<List<WeaningCandidate>> fetchWeaningCandidates({
+    String tag = '',
+    bool includeWeaned = false,
+  }) async => (await _query(
+    weaningCandidateQuery(tag: tag, includeWeaned: includeWeaned),
+  )).map(WeaningCandidate.fromJson).toList(growable: false);
 
   Future<List<BirthOption>> fetchSexes() async =>
       (await _query('SELECT CODSEXO, SEXO FROM TB_SEXO ORDER BY SEXO'))
@@ -136,6 +171,20 @@ class AnimalBirthRepository {
       date: date,
       destinationLotCode: destinationLotCode,
       comment: comment,
+    ),
+  );
+
+  Future<void> registerWeaning({
+    required int calfCode,
+    required String date,
+    required double weight,
+    required int destinationLotCode,
+  }) => _execute(
+    animalWeaningSql(
+      calfCode: calfCode,
+      date: date,
+      weight: weight,
+      destinationLotCode: destinationLotCode,
     ),
   );
 
@@ -255,6 +304,34 @@ String animalInductionSql({
     '@CODLOTEDESTINO = $destinationLotCode, '
     '@COMENTARIO = ${_birthSqlText(comment.toUpperCase())};';
 
+String weaningCandidateQuery({String tag = '', bool includeWeaned = false}) {
+  final filters = <String>[];
+  if (tag.trim().isNotEmpty) {
+    filters.add("A.BRINCO = ${_birthSqlText(tag.trim().toUpperCase())}");
+  }
+  if (!includeWeaned) filters.add('ISNULL(P.PESODESMAME, 0) = 0');
+  return '''
+SELECT A.CODANIMAL, A.BRINCO, A.DATANASCIMENTO, L.LOTE, P.PESODESMAME,
+  DATEDIFF(day,
+    COALESCE(TRY_CONVERT(date, A.DATANASCIMENTO, 103), TRY_CONVERT(date, A.DATANASCIMENTO, 23)),
+    GETDATE()) AS DIASNASCIDA
+FROM TB_ANIMAIS A
+INNER JOIN TB_PARTOS P ON P.CODANIMAL_NOVO = A.CODANIMAL
+INNER JOIN TB_LOTES L ON L.CODLOTE = A.CODLOTE
+${filters.isEmpty ? '' : 'WHERE ${filters.join(' AND ')}'}
+ORDER BY A.CODANIMAL''';
+}
+
+String animalWeaningSql({
+  required int calfCode,
+  required String date,
+  required double weight,
+  required int destinationLotCode,
+}) =>
+    'EXEC SP_TB_PARTO_DESMAME @DATA = ${_birthSqlDate(date)}, '
+    '@CODANIMAL = $calfCode, @CODLOTEDESTINO = $destinationLotCode, '
+    "@PESODESMAME = '${weight.toStringAsFixed(2)}';";
+
 String _birthSqlDate(String value) {
   final trimmed = value.trim();
   final br = RegExp(r'^(\d{2})/(\d{2})/(\d{4})$').firstMatch(trimmed);
@@ -282,6 +359,8 @@ dynamic _birthField(Map<String, dynamic> row, String name) {
 }
 
 int _birthInt(Object? value) => int.tryParse('${value ?? 0}') ?? 0;
+
+double _birthDouble(Object? value) => double.tryParse('${value ?? 0}') ?? 0;
 
 String _birthXmlEscape(String value) => value
     .replaceAll('&', '&amp;')
