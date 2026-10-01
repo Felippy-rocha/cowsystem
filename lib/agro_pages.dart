@@ -19,10 +19,12 @@ class _AgroCatalogPageState extends State<AgroCatalogPage> {
   late final SoapClient _client;
   late final AgroRepository _repository;
   late final PermissionRepository _permissions;
+  final _searchController = TextEditingController();
   List<Map<String, dynamic>> _rows = const [];
   Map<int, bool> _access = const {};
   List<PermissionDefinitionRecord> _permissionCatalog = const [];
   bool _loading = true;
+  bool _searching = false;
   String? _error;
 
   @override
@@ -36,6 +38,7 @@ class _AgroCatalogPageState extends State<AgroCatalogPage> {
 
   @override
   void dispose() {
+    _searchController.dispose();
     _client.close();
     super.dispose();
   }
@@ -109,12 +112,39 @@ class _AgroCatalogPageState extends State<AgroCatalogPage> {
   @override
   Widget build(BuildContext context) {
     final canCreate = _actionAllowed('INCLUIR');
+    final query = _searchController.text.trim().toLowerCase();
+    final visibleRows = _rows
+        .where((row) {
+          if (query.isEmpty) return true;
+          return widget.config.fields.any(
+            (field) => '${row[field.key] ?? ''}'.toLowerCase().contains(query),
+          );
+        })
+        .toList(growable: false);
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.config.title),
+        title: _searching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(
+                  hintText: 'Pesquisar',
+                  border: InputBorder.none,
+                ),
+              )
+            : Text(widget.config.title),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            tooltip: _searching ? 'Fechar pesquisa' : 'Pesquisar',
+            onPressed: () => setState(() {
+              _searching = !_searching;
+              if (!_searching) _searchController.clear();
+            }),
+            icon: Icon(_searching ? Icons.close : Icons.search),
+          ),
           IconButton(
             tooltip: 'Atualizar',
             onPressed: _load,
@@ -131,13 +161,19 @@ class _AgroCatalogPageState extends State<AgroCatalogPage> {
           ? const Center(child: CircularProgressIndicator())
           : _error != null
           ? Center(child: Text(_error!))
-          : _rows.isEmpty
-          ? const Center(child: Text('Nenhum registro cadastrado.'))
+          : visibleRows.isEmpty
+          ? Center(
+              child: Text(
+                query.isEmpty
+                    ? 'Nenhum registro cadastrado.'
+                    : 'Nenhum registro encontrado.',
+              ),
+            )
           : ListView.separated(
               padding: const EdgeInsets.all(12),
-              itemCount: _rows.length,
+              itemCount: visibleRows.length,
               separatorBuilder: (_, index) => const Divider(height: 1),
-              itemBuilder: (context, index) => _rowTile(_rows[index]),
+              itemBuilder: (context, index) => _rowTile(visibleRows[index]),
             ),
     );
   }
@@ -148,12 +184,17 @@ class _AgroCatalogPageState extends State<AgroCatalogPage> {
     return ListTile(
       title: Text(primary, style: const TextStyle(fontWeight: FontWeight.w700)),
       subtitle: Text(
-        widget.config.fields
-            .skip(1)
-            .take(2)
-            .map((f) {
-              final value = f.date ? displayDate(row[f.key]) : row[f.key] ?? '';
-              return '${f.label}: $value';
+        (widget.config.listColumns.isEmpty
+                ? widget.config.fields.skip(1).take(2).map((field) => field.key)
+                : widget.config.listColumns)
+            .map((key) {
+              final field = widget.config.fields.firstWhere(
+                (field) => field.key == key,
+              );
+              final value = field.date
+                  ? displayDate(row[field.key])
+                  : row[field.key] ?? '';
+              return '${field.label}: $value';
             })
             .join(' | '),
       ),
@@ -183,13 +224,44 @@ class _AgroCatalogPageState extends State<AgroCatalogPage> {
       for (final field in widget.config.fields)
         field.key: '${row?[field.key] ?? ''}',
     };
+    final options = <String, List<String>>{};
+    try {
+      for (final field in widget.config.fields) {
+        if (field.optionsQuery != null && field.optionsValueColumn != null) {
+          options[field.key] = await _repository.fetchOptions(
+            field.optionsQuery!,
+            field.optionsValueColumn!,
+          );
+        } else if (field.options.isNotEmpty) {
+          options[field.key] = field.options;
+        }
+      }
+    } on SoapException catch (error) {
+      if (mounted) setState(() => _error = error.message);
+      return;
+    }
+    if (!mounted) return;
     final result = await showDialog<Map<String, String>>(
       context: context,
-      builder: (context) => _AgroForm(config: widget.config, values: values),
+      builder: (context) =>
+          _AgroForm(config: widget.config, values: values, options: options),
     );
     if (result == null || !mounted) return;
     try {
       final id = int.tryParse('${row?[widget.config.idColumn] ?? 0}') ?? 0;
+      final uniqueColumn = widget.config.uniqueColumn;
+      if (uniqueColumn != null) {
+        final value = (result[uniqueColumn] ?? '').trim().toLowerCase();
+        final duplicate = _rows.any(
+          (existing) =>
+              int.tryParse('${existing[widget.config.idColumn] ?? 0}') != id &&
+              '${existing[uniqueColumn] ?? ''}'.trim().toLowerCase() == value,
+        );
+        if (duplicate) {
+          setState(() => _error = '${widget.config.title} já cadastrado.');
+          return;
+        }
+      }
       await _repository.save(widget.config, id, result);
       await _load();
     } on SoapException catch (error) {
@@ -225,54 +297,72 @@ class _AgroCatalogPageState extends State<AgroCatalogPage> {
 }
 
 class _AgroForm extends StatefulWidget {
-  const _AgroForm({required this.config, required this.values});
+  const _AgroForm({
+    required this.config,
+    required this.values,
+    required this.options,
+  });
 
   final AgroEntityConfig config;
   final Map<String, String> values;
+  final Map<String, List<String>> options;
 
   @override
   State<_AgroForm> createState() => _AgroFormState();
 }
 
 class _AgroFormState extends State<_AgroForm> {
+  final _formKey = GlobalKey<FormState>();
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text(widget.config.title),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final field in widget.config.fields)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: field.date
-                    ? _dateField(context, field)
-                    : TextFormField(
-                        initialValue: widget.values[field.key],
-                        keyboardType:
-                            field.numeric || field.currency || field.percent
-                            ? const TextInputType.numberWithOptions(
-                                decimal: true,
-                              )
-                            : TextInputType.text,
-                        inputFormatters:
-                            field.numeric || field.currency || field.percent
-                            ? [
-                                FilteringTextInputFormatter.allow(
-                                  RegExp(r'[0-9.,]'),
-                                ),
-                              ]
-                            : null,
-                        decoration: InputDecoration(
-                          labelText: field.label,
-                          prefixText: field.currency ? r'R$ ' : null,
-                          suffixText: field.percent ? '%' : null,
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final field in widget.config.fields)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: field.date
+                      ? _dateField(context, field)
+                      : widget.options.containsKey(field.key)
+                      ? _optionField(field)
+                      : TextFormField(
+                          initialValue: widget.values[field.key],
+                          keyboardType:
+                              field.numeric || field.currency || field.percent
+                              ? const TextInputType.numberWithOptions(
+                                  decimal: true,
+                                )
+                              : TextInputType.text,
+                          inputFormatters:
+                              field.numeric || field.currency || field.percent
+                              ? [
+                                  FilteringTextInputFormatter.allow(
+                                    RegExp(r'[0-9.,]'),
+                                  ),
+                                ]
+                              : null,
+                          decoration: InputDecoration(
+                            labelText: field.label,
+                            prefixText: field.currency ? r'R$ ' : null,
+                            suffixText: field.percent ? '%' : null,
+                          ),
+                          validator: field.required
+                              ? (value) => value == null || value.trim().isEmpty
+                                    ? 'Preenchimento obrigatório'
+                                    : null
+                              : null,
+                          onChanged: (value) =>
+                              widget.values[field.key] = value,
                         ),
-                        onChanged: (value) => widget.values[field.key] = value,
-                      ),
-              ),
-          ],
+                ),
+            ],
+          ),
         ),
       ),
       actions: [
@@ -281,10 +371,36 @@ class _AgroFormState extends State<_AgroForm> {
           child: const Text('Cancelar'),
         ),
         FilledButton(
-          onPressed: () => Navigator.pop(context, widget.values),
+          onPressed: () {
+            if (_formKey.currentState!.validate()) {
+              Navigator.pop(context, widget.values);
+            }
+          },
           child: const Text('Salvar'),
         ),
       ],
+    );
+  }
+
+  Widget _optionField(AgroField field) {
+    final values = [...widget.options[field.key]!];
+    final current = widget.values[field.key];
+    if (current != null && current.isNotEmpty && !values.contains(current)) {
+      values.add(current);
+    }
+    return DropdownButtonFormField<String>(
+      initialValue: values.contains(current) ? current : null,
+      isExpanded: true,
+      decoration: InputDecoration(labelText: field.label),
+      items: values
+          .map((value) => DropdownMenuItem(value: value, child: Text(value)))
+          .toList(growable: false),
+      validator: field.required
+          ? (value) => value == null ? 'Preenchimento obrigatório' : null
+          : null,
+      onChanged: (value) {
+        if (value != null) widget.values[field.key] = value;
+      },
     );
   }
 
@@ -405,4 +521,32 @@ AgroEntityConfig simpleTableCatalogConfig({
   saveSql: (id, values) =>
       'EXEC SP_TB_TABELAS_INSERT_UPDATE $table, $id, ${sqlText(values[descriptionColumn] ?? '')};',
   deleteSql: (id) => "EXEC SP_TB_TABELAS_DELETE '$table', $id;",
+);
+
+AgroEntityConfig suppliersConfig() => AgroEntityConfig(
+  title: 'Fornecedores',
+  table: 'TB_FORNECEDORES',
+  idColumn: 'CODFORNECEDOR',
+  uniqueColumn: 'FORNECEDOR',
+  listColumns: const ['ENDERECOWEB', 'CONTATO', 'CELULAR', 'TIPOINSUMO'],
+  query: 'SELECT CODFORNECEDOR, FORNECEDOR, TIPO, ENDERECOWEB, USUARIO, CONTATO, TELEFONE, CELULAR, TIPOINSUMO FROM TB_FORNECEDORES ORDER BY FORNECEDOR',
+  fields: const [
+    AgroField('FORNECEDOR', 'Fornecedor', required: true),
+    AgroField('TIPO', 'Tipo', required: true, options: ['INTERNET', 'LOCAL']),
+    AgroField('ENDERECOWEB', 'Endereço web'),
+    AgroField('USUARIO', 'Usuário'),
+    AgroField('CONTATO', 'Contato'),
+    AgroField('TELEFONE', 'Telefone'),
+    AgroField('CELULAR', 'Celular'),
+    AgroField(
+      'TIPOINSUMO',
+      'Tipo de insumo',
+      required: true,
+      optionsQuery: 'SELECT INSUMO FROM TB_TIPOINSUMOS ORDER BY INSUMO',
+      optionsValueColumn: 'INSUMO',
+    ),
+  ],
+  saveSql: (id, values) =>
+      'EXEC SP_TB_FORNECEDORES_INSERT_UPDATE $id, ${sqlText(values['FORNECEDOR'] ?? '')}, ${sqlText(values['TIPO'] ?? '')}, ${sqlText(values['ENDERECOWEB'] ?? '')}, ${sqlText(values['USUARIO'] ?? '')}, ${sqlText(values['CONTATO'] ?? '')}, ${sqlText(values['TELEFONE'] ?? '')}, ${sqlText(values['CELULAR'] ?? '')}, ${sqlText(values['TIPOINSUMO'] ?? '')};',
+  deleteSql: (id) => 'DELETE FROM TB_FORNECEDORES WHERE CODFORNECEDOR = $id;',
 );

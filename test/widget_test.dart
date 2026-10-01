@@ -39,6 +39,29 @@ void main() {
     expect(config.deleteSql(4), "EXEC SP_TB_TABELAS_DELETE 'TB_DOENCAS', 4;");
   });
 
+  test('configura fornecedores com todos os campos do contrato B4A', () {
+    final config = suppliersConfig();
+
+    expect(config.table, 'TB_FORNECEDORES');
+    expect(config.uniqueColumn, 'FORNECEDOR');
+    expect(config.fields.map((field) => field.key), [
+      'FORNECEDOR',
+      'TIPO',
+      'ENDERECOWEB',
+      'USUARIO',
+      'CONTATO',
+      'TELEFONE',
+      'CELULAR',
+      'TIPOINSUMO',
+    ]);
+    expect(config.fields[1].options, ['INTERNET', 'LOCAL']);
+    expect(config.fields.last.optionsQuery, contains('TB_TIPOINSUMOS'));
+    expect(
+      config.saveSql(-1, {'FORNECEDOR': "D'Água"}),
+      "EXEC SP_TB_FORNECEDORES_INSERT_UPDATE -1, N'D''Água', N'', N'', N'', N'', N'', N'', N'';",
+    );
+  });
+
   test('formata números no padrão brasileiro', () {
     expect(formatBrazilianNumber(9406.2), '9.406,2');
     expect(formatBrazilianNumber(55396.6), '55.396,6');

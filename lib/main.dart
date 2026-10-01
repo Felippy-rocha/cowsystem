@@ -556,6 +556,9 @@ class ModulePage extends StatelessWidget {
                       if (entry.label == 'Talhões') {
                         return AgroCatalogPage(config: talhoesConfig());
                       }
+                      if (entry.label == 'Fornecedores') {
+                        return AgroCatalogPage(config: suppliersConfig());
+                      }
                       if (entry.label == 'Doenças') {
                         return AgroCatalogPage(
                           config: simpleTableCatalogConfig(

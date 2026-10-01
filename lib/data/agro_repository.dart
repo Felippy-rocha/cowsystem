@@ -10,6 +10,10 @@ class AgroField {
     this.date = false,
     this.currency = false,
     this.percent = false,
+    this.required = false,
+    this.options = const [],
+    this.optionsQuery,
+    this.optionsValueColumn,
   });
 
   final String key;
@@ -18,6 +22,10 @@ class AgroField {
   final bool date;
   final bool currency;
   final bool percent;
+  final bool required;
+  final List<String> options;
+  final String? optionsQuery;
+  final String? optionsValueColumn;
 }
 
 class AgroEntityConfig {
@@ -29,6 +37,8 @@ class AgroEntityConfig {
     required this.fields,
     required this.saveSql,
     required this.deleteSql,
+    this.uniqueColumn,
+    this.listColumns = const [],
   });
 
   final String title;
@@ -36,6 +46,8 @@ class AgroEntityConfig {
   final String idColumn;
   final String query;
   final List<AgroField> fields;
+  final String? uniqueColumn;
+  final List<String> listColumns;
   final String Function(int id, Map<String, String> values) saveSql;
   final String Function(int id) deleteSql;
 }
@@ -55,6 +67,21 @@ class AgroRepository {
           '<BancoLocal>false</BancoLocal>',
     );
     return _parseRows(response);
+  }
+
+  Future<List<String>> fetchOptions(String query, String valueColumn) async {
+    final response = await soapClient.callResult(
+      action: 'Importar_Json',
+      password: const String.fromEnvironment('COWSYSTEM_SOAP_PASSWORD'),
+      body:
+          '<xSql>${_xmlEscape(query)}</xSql>'
+          '<Sufixo>${_xmlEscape(soapClient.suffix)}</Sufixo>'
+          '<BancoLocal>false</BancoLocal>',
+    );
+    return _parseRows(response)
+        .map((row) => '${row[valueColumn] ?? ''}'.trim())
+        .where((value) => value.isNotEmpty)
+        .toList(growable: false);
   }
 
   Future<void> save(
