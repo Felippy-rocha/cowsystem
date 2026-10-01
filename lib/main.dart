@@ -8,6 +8,7 @@ import 'animal_diagnosis_page.dart';
 import 'animal_birth_page.dart';
 import 'animal_dry_off_page.dart';
 import 'animal_insemination_page.dart';
+import 'animal_precalving_page.dart';
 import 'animal_weight_page.dart';
 import 'animal_weaning_page.dart';
 import 'data/animal_record.dart';
@@ -667,6 +668,9 @@ class ModulePage extends StatelessWidget {
                       }
                       if (entry.label == 'Registrar secagem') {
                         return const AnimalDryOffPage();
+                      }
+                      if (entry.label == 'Pré-Parto') {
+                        return const AnimalPrecalvingPage();
                       }
                       if (entry.label == 'Pesagem') {
                         return const AnimalWeightPage();

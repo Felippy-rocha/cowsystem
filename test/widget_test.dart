@@ -19,12 +19,36 @@ import 'package:cowsystem/data/animal_diagnosis_repository.dart';
 import 'package:cowsystem/data/animal_insemination_repository.dart';
 import 'package:cowsystem/data/animal_birth_repository.dart';
 import 'package:cowsystem/data/animal_dry_off_repository.dart';
+import 'package:cowsystem/data/animal_precalving_repository.dart';
 import 'package:cowsystem/data/animal_record.dart';
 import 'package:cowsystem/data/client_routing.dart';
 import 'package:cowsystem/data/number_format.dart';
 import 'package:cowsystem/main.dart';
 
 void main() {
+  test('consulta vacas elegíveis para pré-parto conforme o B4A', () {
+    final query = animalPrecalvingQuery(tag: '43');
+
+    expect(query, contains("STATUSPRODUCAO IN ('SECA', 'N/D')"));
+    expect(query, contains('TB_PRENHEZES P'));
+    expect(query, contains('TB_PREPARTO WHERE DATASAIDA IS NULL'));
+    expect(query, contains('DATEADD(day, ISNULL(L.DIAS_PREPARTO, 0)'));
+    expect(query, contains("BRINCO) LIKE N'%43%'"));
+  });
+
+  test('gera inclusão no pré-parto conforme procedure B4A', () {
+    expect(
+      animalPrecalvingInsertSql(
+        animalCode: 43,
+        date: '12/05/2026',
+        destinationLotCode: 8,
+        comment: "PRÉ-PARTO D'ÁGUA",
+      ),
+      "EXEC SP_TB_ANIMAIS_PREPARTO_INSERT 43, '2026-05-12', 8, "
+      "N'PRÉ-PARTO D''ÁGUA';",
+    );
+  });
+
   test('consulta vacas em leite e calcula previsão de secagem', () {
     final query = animalDryOffQuery(tag: '43');
 
