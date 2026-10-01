@@ -31,6 +31,7 @@ import 'package:cowsystem/data/medication_inventory_repository.dart';
 import 'package:cowsystem/data/touch_session_repository.dart';
 import 'package:cowsystem/data/herd_summary_repository.dart';
 import 'package:cowsystem/data/milk_summary_repository.dart';
+import 'package:cowsystem/data/consumption_analysis_repository.dart';
 import 'package:cowsystem/data/diet_repository.dart';
 import 'package:cowsystem/data/general_supply_inventory_repository.dart';
 import 'package:cowsystem/data/animal_insemination_repository.dart';
@@ -45,6 +46,21 @@ import 'package:cowsystem/data/number_format.dart';
 import 'package:cowsystem/main.dart';
 
 void main() {
+  test('gera análise de consumo mensal e diária', () {
+    expect(
+      consumptionAnalysisMonthlySql(dietCode: 4, period: '05/2026', lotCode: 8),
+      "EXEC SP_TB_ANALISE_CONSUMO_MENSAL_LOTE 4, N'05/2026', 8;",
+    );
+    expect(
+      consumptionAnalysisDailySql(dietCode: 4, date: '24/05/2026'),
+      "EXEC SP_TB_ANALISE_CONSUMO_DIARIO 4, '2026-05-24';",
+    );
+    expect(
+      () => consumptionAnalysisDailySql(dietCode: 4, date: '31/02/2026'),
+      throwsFormatException,
+    );
+  });
+
   test('gera resumo de leite mensal pelo período', () {
     expect(
       milkSummaryGenerateSql('05/2026'),
