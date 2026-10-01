@@ -24,6 +24,7 @@ import 'package:cowsystem/data/animal_hoof_trimming_repository.dart';
 import 'package:cowsystem/data/animal_bst_application_repository.dart';
 import 'package:cowsystem/data/animal_bst_repository.dart';
 import 'package:cowsystem/data/dry_matter_history_repository.dart';
+import 'package:cowsystem/data/animal_protocol_repository.dart';
 import 'package:cowsystem/data/animal_insemination_repository.dart';
 import 'package:cowsystem/data/animal_birth_repository.dart';
 import 'package:cowsystem/data/animal_dry_off_repository.dart';
@@ -36,6 +37,70 @@ import 'package:cowsystem/data/number_format.dart';
 import 'package:cowsystem/main.dart';
 
 void main() {
+  test('gera SQL do protocolo e das ações de tarefa conforme B4A', () {
+    expect(
+      protocolApplicationSql(
+        date: '22/05/2026',
+        time: '08:30',
+        protocolCode: 4,
+        animalCode: 43,
+        completed: false,
+      ),
+      "EXEC SP_TB_TAREFAS_INSERT_PROTOCOLO '22/05/2026 08:30', "
+      "'08:30', 4, 43, 0;",
+    );
+    expect(
+      protocolTaskActionSql('CONCLUIR', 9),
+      'EXEC SP_TB_TAREFAS_CONCLUIR 9;',
+    );
+    expect(
+      protocolTaskActionSql('DESFAZER_CONCLUIR', 9),
+      'EXEC SP_TB_TAREFAS_DESFAZER_CONCLUIR 9;',
+    );
+    expect(
+      protocolTaskUpdateSql(
+        taskCode: 9,
+        taskTypeCode: 2,
+        date: '23/05/2026',
+        time: '09:15',
+        animalCode: 43,
+        description: "REVISÃO D'ÁGUA",
+        execution: 'PROTOCOLO',
+      ),
+      "EXEC SP_TB_TAREFAS_INSERT_UPDATE 9, 2, '2026-05-23', "
+      "N'09:15', 43, N'REVISÃO D''ÁGUA', N'PROTOCOLO';",
+    );
+    expect(
+      protocolStepInsertSql(
+        originCode: 31,
+        taskTypeCode: 2,
+        date: '23/05/2026',
+        time: '09:15',
+        animalCode: 43,
+        description: 'Revisar protocolo',
+        execution: 'PROTOCOLO',
+        protocolCode: 4,
+      ),
+      "EXEC SP_TB_TAREFAS_INSERT 31, 2, '2026-05-23', N'09:15', "
+      "43, N'Revisar protocolo', N'PROTOCOLO', 0, 4;",
+    );
+    expect(
+      protocolTaskActionSql('EXCLUIR', 9),
+      'EXEC SP_TB_TAREFAS_EXCLUIR 9;',
+    );
+    expect(protocolDeleteGroupSql(31), 'EXEC SP_TB_TAREFAS_DELETE 31, 0;');
+    expect(
+      () => protocolApplicationSql(
+        date: '31/02/2026',
+        time: '08:30',
+        protocolCode: 4,
+        animalCode: 43,
+        completed: false,
+      ),
+      throwsFormatException,
+    );
+  });
+
   test('gera procedure de inclusão e edição do histórico de matéria seca', () {
     expect(
       dryMatterHistorySaveSql(
