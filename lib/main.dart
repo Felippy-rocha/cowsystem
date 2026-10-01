@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:android_id/android_id.dart';
 
+import 'animals_roster_page.dart';
 import 'data/animal_record.dart';
 import 'data/animal_repository.dart';
+import 'data/client_routing.dart';
+import 'data/client_routing_repository.dart';
 import 'data/lot_record.dart';
 import 'data/lot_repository.dart';
+import 'data/permission_repository.dart';
 import 'data/soap_client.dart';
+import 'agro_pages.dart';
 
 void main() {
   runApp(const CowSystemApp());
@@ -25,7 +32,164 @@ class CowSystemApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xfff3f7f5),
         useMaterial3: true,
       ),
-      home: const HomePage(),
+      home: const ClientRoutingGate(),
+    );
+  }
+}
+
+class ClientRoutingGate extends StatefulWidget {
+  const ClientRoutingGate({super.key});
+
+  @override
+  State<ClientRoutingGate> createState() => _ClientRoutingGateState();
+}
+
+class _ClientRoutingGateState extends State<ClientRoutingGate> {
+  static const _enabled = bool.fromEnvironment(
+    'COWSYSTEM_RESOLVE_CLIENT',
+    defaultValue: true,
+  );
+
+  late Future<void> _routingFuture;
+  String? _errorMessage;
+  String _deviceId = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _routingFuture = _resolveRouting();
+  }
+
+  Future<void> _resolveRouting() async {
+    if (!_enabled) return;
+    final deviceId = await _readAndroidId();
+    _deviceId = deviceId ?? '';
+    if (deviceId == null || deviceId.isEmpty) {
+      _errorMessage = 'Nao foi possivel identificar este dispositivo.';
+      return;
+    }
+
+    final client = SoapClient(deviceId: deviceId);
+    try {
+      await ClientRoutingRepository(soapClient: client).resolveDevice();
+    } on SoapException catch (error) {
+      _errorMessage = error.message;
+    } finally {
+      client.close();
+    }
+  }
+
+  Future<String?> _readAndroidId() async {
+    try {
+      return await const AndroidId().getId();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_enabled) return const HomePage();
+    return FutureBuilder<void>(
+      future: _routingFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (_errorMessage != null) {
+          return DeviceAuthorizationPage(
+            deviceId: _deviceId,
+            message: _errorMessage!,
+            onRetry: () => setState(() {
+              _errorMessage = null;
+              _routingFuture = _resolveRouting();
+            }),
+          );
+        }
+        return const HomePage();
+      },
+    );
+  }
+}
+
+class DeviceAuthorizationPage extends StatelessWidget {
+  const DeviceAuthorizationPage({
+    required this.deviceId,
+    required this.message,
+    required this.onRetry,
+    super.key,
+  });
+
+  final String deviceId;
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Autorizar dispositivo'),
+        backgroundColor: colors.primary,
+        foregroundColor: Colors.white,
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.phonelink_lock_outlined,
+                size: 72,
+                color: colors.primary,
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Este dispositivo ainda não está liberado.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 12),
+              Text(message, textAlign: TextAlign.center),
+              const SizedBox(height: 24),
+              const Text('Envie este ID ao administrador:'),
+              const SizedBox(height: 8),
+              SelectableText(
+                deviceId.isEmpty ? 'ID indisponível' : deviceId,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: deviceId.isEmpty
+                    ? null
+                    : () async {
+                        await Clipboard.setData(ClipboardData(text: deviceId));
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('ID copiado.')),
+                          );
+                        }
+                      },
+                icon: const Icon(Icons.copy_outlined),
+                label: const Text('Copiar ID'),
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Tentar novamente'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -36,6 +200,8 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final username = ClientRoutingSession.username.trim();
+    final company = ClientRoutingSession.company.trim();
 
     return Scaffold(
       appBar: AppBar(
@@ -47,13 +213,19 @@ class HomePage extends StatelessWidget {
         ),
         actions: [
           IconButton(
-            tooltip: 'Notificacoes',
+            tooltip: 'Notificações',
             onPressed: () => _showMessage(context, 'Nenhuma notificacao nova.'),
             icon: const Icon(Icons.notifications_none_outlined),
           ),
           IconButton(
             tooltip: 'Perfil',
-            onPressed: () => _showMessage(context, 'Perfil do usuario'),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const UserProfilePage(),
+                ),
+              );
+            },
             icon: const Icon(Icons.account_circle_outlined),
           ),
         ],
@@ -67,6 +239,22 @@ class HomePage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Text(
+                    username.isEmpty ? 'Olá' : 'Olá, $username',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (company.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      company,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 20),
                   Text(
                     'Visao geral da fazenda',
                     style: theme.textTheme.headlineSmall?.copyWith(
@@ -152,6 +340,102 @@ class HomePage extends StatelessWidget {
   }
 }
 
+class UserProfilePage extends StatelessWidget {
+  const UserProfilePage({super.key});
+
+  String _value(String value, String fallback) =>
+      value.trim().isEmpty ? fallback : value.trim();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final username = _value(ClientRoutingSession.username, 'Não informado');
+    final company = _value(ClientRoutingSession.company, 'Não informada');
+    final profile = _value(
+      ClientRoutingSession.profileDescription,
+      'Não informado',
+    );
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Meu perfil'),
+        backgroundColor: colors.primary,
+        foregroundColor: Colors.white,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          CircleAvatar(
+            radius: 34,
+            backgroundColor: colors.primaryContainer,
+            child: Icon(
+              Icons.person_outline,
+              size: 38,
+              color: colors.onPrimaryContainer,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Center(
+            child: Text(
+              username,
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ),
+          const SizedBox(height: 24),
+          _profileField(context, 'Usuário', username, Icons.person_outline),
+          _profileField(context, 'Empresa', company, Icons.business_outlined),
+          _profileField(
+            context,
+            'Perfil de acesso',
+            profile,
+            Icons.security_outlined,
+          ),
+          _profileField(
+            context,
+            'Dispositivo',
+            _value(ClientRoutingSession.deviceId ?? '', 'Não informado'),
+            Icons.smartphone_outlined,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'As permissões são administradas pelo administrador.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall
+                ?.copyWith(color: colors.onSurfaceVariant),
+          ),
+          if (ClientRoutingSession.canGrantPermissions) ...[
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const ProfilePermissionsPage(),
+                ),
+              ),
+              icon: const Icon(Icons.admin_panel_settings_outlined),
+              label: const Text('Gerenciar perfis e permissões'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _profileField(
+    BuildContext context,
+    String label,
+    String value,
+    IconData icon,
+  ) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(icon),
+      title: Text(label),
+      subtitle: Text(value),
+    );
+  }
+}
+
 class ModulePage extends StatelessWidget {
   const ModulePage({required this.title, super.key});
 
@@ -163,6 +447,11 @@ class ModulePage extends StatelessWidget {
         return const [
           _ModuleEntry('Animais', Icons.pets_outlined),
           _ModuleEntry('Lotes', Icons.grid_view_outlined),
+          _ModuleEntry('Ingredientes', Icons.grass_outlined),
+          _ModuleEntry('Plantios', Icons.agriculture_outlined),
+          _ModuleEntry('Safras', Icons.calendar_month_outlined),
+          _ModuleEntry('Silos', Icons.warehouse_outlined),
+          _ModuleEntry('Talhões', Icons.landscape_outlined),
           _ModuleEntry('Fornecedores', Icons.local_shipping_outlined),
           _ModuleEntry('Insumos gerais', Icons.inventory_2_outlined),
           _ModuleEntry('Medicamentos', Icons.medication_outlined),
@@ -170,12 +459,12 @@ class ModulePage extends StatelessWidget {
           _ModuleEntry('Tratamentos', Icons.healing_outlined),
           _ModuleEntry('Touros', Icons.pets_outlined),
         ];
-      case 'Servicos':
+      case 'Serviços':
         return const [
           _ModuleEntry('Controle leiteiro', Icons.water_drop_outlined),
           _ModuleEntry('Pesagem', Icons.monitor_weight_outlined),
-          _ModuleEntry('Inseminacao', Icons.science_outlined),
-          _ModuleEntry('Diagnostico gestacional', Icons.monitor_heart_outlined),
+          _ModuleEntry('Inseminação', Icons.science_outlined),
+          _ModuleEntry('Diagnóstico gestacional', Icons.monitor_heart_outlined),
           _ModuleEntry('Parto', Icons.child_friendly_outlined),
           _ModuleEntry('Registrar desmame', Icons.swap_horiz_outlined),
           _ModuleEntry('Registrar secagem', Icons.opacity_outlined),
@@ -193,9 +482,9 @@ class ModulePage extends StatelessWidget {
       case 'Ajustes':
         return const [
           _ModuleEntry('Perfil', Icons.person_outline),
-          _ModuleEntry('Sincronizacao', Icons.sync_outlined),
-          _ModuleEntry('Notificacoes', Icons.notifications_none_outlined),
-          _ModuleEntry('Configuracoes', Icons.settings_outlined),
+          _ModuleEntry('Sincronização', Icons.sync_outlined),
+          _ModuleEntry('Notificações', Icons.notifications_none_outlined),
+          _ModuleEntry('Configurações', Icons.settings_outlined),
         ];
       default:
         return const [];
@@ -234,8 +523,35 @@ class ModulePage extends StatelessWidget {
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (_) {
-                      if (entry.label == 'Animais') return const AnimalsPage();
+                      if (entry.label == 'Animais') {
+                        return AnimalRosterPage(
+                          openAnimalForm: (formContext) =>
+                              Navigator.of(formContext).push<AnimalRecord>(
+                                MaterialPageRoute<AnimalRecord>(
+                                  builder: (_) => const AnimalFormPage(),
+                                ),
+                              ),
+                        );
+                      }
                       if (entry.label == 'Lotes') return const LotsPage();
+                      if (entry.label == 'Ingredientes') {
+                        return AgroCatalogPage(config: ingredientsConfig());
+                      }
+                      if (entry.label == 'Plantios') {
+                        return AgroCatalogPage(config: plantiosConfig());
+                      }
+                      if (entry.label == 'Safras') {
+                        return AgroCatalogPage(config: safraConfig());
+                      }
+                      if (entry.label == 'Silos') {
+                        return AgroCatalogPage(config: siloConfig());
+                      }
+                      if (entry.label == 'Talhões') {
+                        return AgroCatalogPage(config: talhoesConfig());
+                      }
+                      if (entry.label == 'Perfil') {
+                        return const ProfilePermissionsPage();
+                      }
                       return ModulePage(title: entry.label);
                     },
                   ),
@@ -272,13 +588,19 @@ class _LotsPageState extends State<LotsPage> {
   int? _selectedLotCode;
   bool _isLoading = false;
   String? _errorMessage;
+  late final PermissionRepository _permissionRepository;
+  Map<int, String> _feedingLocations = const {};
+  Map<int, bool> _lotPermissions = const {};
+  List<PermissionDefinitionRecord> _permissionCatalog = const [];
 
   @override
   void initState() {
     super.initState();
-    _soapClient = SoapClient();
+    _soapClient = SoapClient(suffix: ClientRoutingSession.suffix);
     _repository = LotRepository(soapClient: _soapClient);
+    _permissionRepository = PermissionRepository(soapClient: _soapClient);
     _loadLots();
+    _loadLotPermissions();
   }
 
   @override
@@ -286,6 +608,40 @@ class _LotsPageState extends State<LotsPage> {
     _searchController.dispose();
     _soapClient.close();
     super.dispose();
+  }
+
+  bool _lotActionAllowed(String action) {
+    final definition = _permissionCatalog.where(
+      (item) =>
+          item.routine.toUpperCase() == 'LOTES' &&
+          item.action.toUpperCase().startsWith(action.toUpperCase()),
+    );
+    final code = definition.isEmpty ? null : definition.first.code;
+    return code != null && _lotPermissions[code] == true;
+  }
+
+  Future<void> _loadLotPermissions() async {
+    final profile = ClientRoutingSession.profileCode;
+    if (profile <= 0) return;
+    try {
+      final catalog = await _permissionRepository.fetchPermissionCatalog();
+      final permissions = await _permissionRepository.fetchProfilePermissions(
+        profile,
+      );
+      if (!mounted) return;
+      setState(() {
+        _permissionCatalog = catalog;
+        _lotPermissions = permissions;
+      });
+      try {
+        final locations = await _repository.fetchFeedingLocations();
+        if (mounted) setState(() => _feedingLocations = locations);
+      } on SoapException catch (error) {
+        if (mounted) setState(() => _errorMessage = error.message);
+      }
+    } on SoapException catch (error) {
+      if (mounted) setState(() => _errorMessage = error.message);
+    }
   }
 
   List<LotRecord> get _filteredLots {
@@ -311,7 +667,7 @@ class _LotsPageState extends State<LotsPage> {
           ),
           IconButton(
             tooltip: 'Adicionar lote',
-            onPressed: _openLotForm,
+            onPressed: _lotActionAllowed('INCLUIR') ? _openLotForm : null,
             icon: const Icon(Icons.add),
           ),
         ],
@@ -344,22 +700,21 @@ class _LotsPageState extends State<LotsPage> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _filteredLots.isEmpty
-                    ? Center(
-                        child: Text(
-                          _errorMessage ?? 'Nenhum lote cadastrado',
-                          textAlign: TextAlign.center,
-                        ),
-                      )
-                    : _selectedTab == 0
-                        ? ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(4, 8, 4, 24),
-                            itemCount: _filteredLots.length,
-                            separatorBuilder: (_, index) =>
-                                const Divider(height: 1),
-                            itemBuilder: (context, index) =>
-                                _lotListTile(_filteredLots[index]),
-                          )
-                        : _lotsGrid(),
+                ? Center(
+                    child: Text(
+                      _errorMessage ?? 'Nenhum lote cadastrado',
+                      textAlign: TextAlign.center,
+                    ),
+                  )
+                : _selectedTab == 0
+                ? ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(4, 8, 4, 24),
+                    itemCount: _filteredLots.length,
+                    separatorBuilder: (_, index) => const Divider(height: 1),
+                    itemBuilder: (context, index) =>
+                        _lotListTile(_filteredLots[index]),
+                  )
+                : _lotsGrid(),
           ),
         ],
       ),
@@ -369,8 +724,10 @@ class _LotsPageState extends State<LotsPage> {
   Widget _lotListTile(LotRecord lot) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      title: Text(lot.name,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+      title: Text(
+        lot.name,
+        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+      ),
       subtitle: Text(
         'Status: ${_lotStatusLabel(lot)}\n'
         'Dieta: ${_lotDietLabel(lot)}\n'
@@ -381,12 +738,22 @@ class _LotsPageState extends State<LotsPage> {
       trailing: PopupMenuButton<String>(
         tooltip: 'Opcoes do lote',
         onSelected: (action) {
-          if (action == 'edit') _openLotForm(lot);
-          if (action == 'delete') _confirmDelete(lot);
+          if (action == 'edit' && _lotActionAllowed('ALTERAR'))
+            _openLotForm(lot);
+          if (action == 'delete' && _lotActionAllowed('EXCLUIR'))
+            _confirmDelete(lot);
         },
-        itemBuilder: (_) => const [
-          PopupMenuItem(value: 'edit', child: Text('Alterar')),
-          PopupMenuItem(value: 'delete', child: Text('Excluir')),
+        itemBuilder: (_) => [
+          PopupMenuItem(
+            value: 'edit',
+            enabled: _lotActionAllowed('ALTERAR'),
+            child: const Text('Alterar'),
+          ),
+          PopupMenuItem(
+            value: 'delete',
+            enabled: _lotActionAllowed('EXCLUIR'),
+            child: const Text('Excluir'),
+          ),
         ],
       ),
     );
@@ -398,7 +765,9 @@ class _LotsPageState extends State<LotsPage> {
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(0, 4, 0, 24),
         child: ConstrainedBox(
-          constraints: BoxConstraints(minWidth: MediaQuery.sizeOf(context).width),
+          constraints: BoxConstraints(
+            minWidth: MediaQuery.sizeOf(context).width,
+          ),
           child: Table(
             columnWidths: const {
               0: IntrinsicColumnWidth(),
@@ -413,16 +782,10 @@ class _LotsPageState extends State<LotsPage> {
               right: BorderSide(color: Color(0xff283593)),
             ),
             children: [
-              _gridRow(
-                const [Text('Lote'), Text('Status')],
-                header: true,
-              ),
+              _gridRow(const [Text('Lote'), Text('Status')], header: true),
               ..._filteredLots.map(
                 (lot) => _gridRow(
-                  [
-                    Text(lot.name, softWrap: false),
-                    _gridStatusCell(lot),
-                  ],
+                  [Text(lot.name, softWrap: false), _gridStatusCell(lot)],
                   selected: _selectedLotCode == lot.code,
                   onTap: () => setState(() => _selectedLotCode = lot.code),
                 ),
@@ -446,12 +809,22 @@ class _LotsPageState extends State<LotsPage> {
           tooltip: 'Acoes do lote',
           icon: const Icon(Icons.more_horiz, size: 24),
           onSelected: (action) {
-            if (action == 'edit') _openLotForm(lot);
-            if (action == 'delete') _confirmDelete(lot);
+            if (action == 'edit' && _lotActionAllowed('ALTERAR'))
+              _openLotForm(lot);
+            if (action == 'delete' && _lotActionAllowed('EXCLUIR'))
+              _confirmDelete(lot);
           },
-          itemBuilder: (_) => const [
-            PopupMenuItem(value: 'edit', child: Text('Alterar')),
-            PopupMenuItem(value: 'delete', child: Text('Excluir')),
+          itemBuilder: (_) => [
+            PopupMenuItem(
+              value: 'edit',
+              enabled: _lotActionAllowed('ALTERAR'),
+              child: const Text('Alterar'),
+            ),
+            PopupMenuItem(
+              value: 'delete',
+              enabled: _lotActionAllowed('EXCLUIR'),
+              child: const Text('Excluir'),
+            ),
           ],
         ),
       ],
@@ -485,8 +858,8 @@ class _LotsPageState extends State<LotsPage> {
         color: header
             ? const Color(0xffd1cfd1)
             : selected
-                ? const Color(0xffffe500)
-                : Colors.white,
+            ? const Color(0xffffe500)
+            : Colors.white,
       ),
       children: cells
           .map(
@@ -516,6 +889,7 @@ class _LotsPageState extends State<LotsPage> {
           existing: existing,
           statusOptions: _statusOptions,
           dietOptions: _dietOptions,
+          feedingLocations: _feedingLocations,
         ),
       ),
     );
@@ -536,15 +910,15 @@ class _LotsPageState extends State<LotsPage> {
   }
 
   Map<int, String> get _statusOptions => {
-        for (final lot in _lots)
-          if (lot.productionStatus.trim().isNotEmpty)
-            lot.productionStatusCode: lot.productionStatus.trim(),
-      };
+    for (final lot in _lots)
+      if (lot.productionStatus.trim().isNotEmpty)
+        lot.productionStatusCode: lot.productionStatus.trim(),
+  };
 
   Map<int, String> get _dietOptions => {
-        for (final lot in _lots)
-          if (lot.diet.trim().isNotEmpty) lot.dietCode: lot.diet.trim(),
-      };
+    for (final lot in _lots)
+      if (lot.diet.trim().isNotEmpty) lot.dietCode: lot.diet.trim(),
+  };
 
   Future<void> _confirmDelete(LotRecord lot) async {
     final confirmed = await showDialog<bool>(
@@ -592,7 +966,8 @@ class _LotsPageState extends State<LotsPage> {
     } on SoapException catch (error) {
       if (mounted) setState(() => _errorMessage = error.message);
     } catch (_) {
-      if (mounted) setState(() => _errorMessage = 'Nao foi possivel consultar o Azure.');
+      if (mounted)
+        setState(() => _errorMessage = 'Nao foi possivel consultar o Azure.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -604,12 +979,14 @@ class LotFormPage extends StatefulWidget {
     this.existing,
     this.statusOptions = const {},
     this.dietOptions = const {},
+    this.feedingLocations = const {},
     super.key,
   });
 
   final LotRecord? existing;
   final Map<int, String> statusOptions;
   final Map<int, String> dietOptions;
+  final Map<int, String> feedingLocations;
 
   @override
   State<LotFormPage> createState() => _LotFormPageState();
@@ -620,11 +997,11 @@ class _LotFormPageState extends State<LotFormPage> {
   final _nameController = TextEditingController();
   final _dryingController = TextEditingController(text: '0');
   final _preCalvingController = TextEditingController(text: '0');
-  final _stallController = TextEditingController(text: '0');
   int _statusValue = 0;
   int _dietValue = 0;
   int _diagnosisValue = 0;
   int _feedingValue = 0;
+  int _feedingLocationValue = 0;
 
   @override
   void dispose() {
@@ -632,7 +1009,6 @@ class _LotFormPageState extends State<LotFormPage> {
       _nameController,
       _dryingController,
       _preCalvingController,
-      _stallController,
     ]) {
       controller.dispose();
     }
@@ -651,7 +1027,7 @@ class _LotFormPageState extends State<LotFormPage> {
       _preCalvingController.text = '${lot.preCalvingDays}';
       _diagnosisValue = lot.pregnancyDiagnosis;
       _feedingValue = lot.milkFeeding;
-      _stallController.text = '${lot.stallType}';
+      _feedingLocationValue = lot.feedingLocation;
     }
   }
 
@@ -677,12 +1053,12 @@ class _LotFormPageState extends State<LotFormPage> {
                 border: OutlineInputBorder(),
               ),
               validator: (value) => value == null || value.trim().isEmpty
-                  ? 'Preenchimento obrigatorio'
+                  ? 'Preenchimento obrigatório'
                   : null,
             ),
             const SizedBox(height: 16),
             selectField(
-              label: 'Status producao',
+              label: 'Status de produção',
               value: _statusValue,
               options: widget.statusOptions,
               onChanged: (value) => setState(() => _statusValue = value!),
@@ -697,12 +1073,12 @@ class _LotFormPageState extends State<LotFormPage> {
             const SizedBox(height: 12),
             numberField(_dryingController, 'Dias de secagem'),
             const SizedBox(height: 12),
-            numberField(_preCalvingController, 'Dias de pre-parto'),
+            numberField(_preCalvingController, 'Dias de pré-parto'),
             const SizedBox(height: 12),
             selectField(
-              label: 'Diagnostico gestacional',
+              label: 'Diagnóstico gestacional',
               value: _diagnosisValue,
-              options: const {1: 'SIM', 2: 'NAO'},
+              options: const {1: 'SIM', 2: 'NÃO'},
               onChanged: (value) => setState(() => _diagnosisValue = value!),
             ),
             const SizedBox(height: 12),
@@ -713,7 +1089,13 @@ class _LotFormPageState extends State<LotFormPage> {
               onChanged: (value) => setState(() => _feedingValue = value!),
             ),
             const SizedBox(height: 12),
-            numberField(_stallController, 'Tipo de baia'),
+            selectField(
+              label: 'Local de aleitamento',
+              value: _feedingLocationValue,
+              options: widget.feedingLocations,
+              onChanged: (value) =>
+                  setState(() => _feedingLocationValue = value!),
+            ),
             const SizedBox(height: 24),
             FilledButton.icon(
               onPressed: save,
@@ -782,7 +1164,7 @@ class _LotFormPageState extends State<LotFormPage> {
         preCalvingDays: number(_preCalvingController),
         pregnancyDiagnosis: _diagnosisValue,
         milkFeeding: _feedingValue,
-        stallType: number(_stallController),
+        feedingLocation: _feedingLocationValue,
       ),
     );
   }
@@ -808,7 +1190,7 @@ class _AnimalsPageState extends State<AnimalsPage> {
   @override
   void initState() {
     super.initState();
-    soapClient = SoapClient();
+    soapClient = SoapClient(suffix: ClientRoutingSession.suffix);
     repository = AnimalRepository(soapClient: soapClient);
     loadAnimals();
   }
@@ -924,12 +1306,12 @@ class _AnimalsPageState extends State<AnimalsPage> {
           ),
           Expanded(
             child: isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _filteredAnimals.isEmpty
+                ? const Center(child: CircularProgressIndicator())
+                : _filteredAnimals.isEmpty
                 ? _AnimalsEmptyState(errorMessage: errorMessage)
                 : selectedTab == 0
-                  ? _AnimalsList(animals: _filteredAnimals)
-                  : _AnimalsGrid(animals: _filteredAnimals),
+                ? _AnimalsList(animals: _filteredAnimals)
+                : _AnimalsGrid(animals: _filteredAnimals),
           ),
         ],
       ),
@@ -1022,9 +1404,9 @@ class _AnimalsList extends StatelessWidget {
             Text('Raca: ${animal.breed}'),
             Text('Status reprodutivo: ${animal.reproductiveStatus}'),
             Text(
-              'Status produtivo: ${animal.productionStatus.isEmpty ? 'Nao informado' : animal.productionStatus}',
+              'Status produtivo: ${animal.productionStatus.isEmpty ? 'Não informado' : animal.productionStatus}',
             ),
-            Text('Lote: ${animal.lot.isEmpty ? 'Nao informado' : animal.lot}'),
+            Text('Lote: ${animal.lot.isEmpty ? 'Não informado' : animal.lot}'),
           ],
         ),
       ),
@@ -1161,7 +1543,7 @@ class _AnimalFormPageState extends State<AnimalFormPage> {
             dropdown(
               label: 'Doadora',
               value: donor,
-              values: const ['Sim', 'Nao'],
+              values: const ['Sim', 'Não'],
               onChanged: (value) => setState(() => donor = value),
               required: true,
             ),
@@ -1186,7 +1568,7 @@ class _AnimalFormPageState extends State<AnimalFormPage> {
             dropdown(
               label: 'Status reprodutivo',
               value: reproductiveStatus,
-              values: const ['NAO APTA', 'Vazia', 'Prenha', 'Inseminada'],
+              values: const ['NÃO APTA', 'Vazia', 'Prenha', 'Inseminada'],
               onChanged: (value) => setState(() => reproductiveStatus = value),
               required: true,
             ),
@@ -1198,7 +1580,7 @@ class _AnimalFormPageState extends State<AnimalFormPage> {
               onChanged: (value) => setState(() => productionStatus = value),
             ),
             const SizedBox(height: 12),
-            numberField(lactationsController, 'Numero de lactacoes'),
+            numberField(lactationsController, 'Número de lactações'),
             const SizedBox(height: 12),
             dateField(lastBirthController, 'Ultimo parto'),
             const SizedBox(height: 12),
@@ -1212,7 +1594,7 @@ class _AnimalFormPageState extends State<AnimalFormPage> {
             dropdown(
               label: 'Beta-caseina',
               value: betaCasein,
-              values: const ['Nao informado', 'A1A1', 'A1A2', 'A2A2'],
+              values: const ['Não informado', 'A1A1', 'A1A2', 'A2A2'],
               onChanged: (value) => setState(() => betaCasein = value),
             ),
             const SizedBox(height: 24),
@@ -1242,7 +1624,7 @@ class _AnimalFormPageState extends State<AnimalFormPage> {
       label: label,
       icon: icon,
       validator: (value) => value == null || value.trim().isEmpty
-          ? 'Preenchimento obrigatorio'
+          ? 'Preenchimento obrigatório'
           : null,
     );
   }
@@ -1372,8 +1754,7 @@ class _AnimalsEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              errorMessage ??
-                  'Os animais serao consultados no banco Azure quando a sincronizacao estiver conectada.',
+              errorMessage ?? 'Os animais serão consultados quando a sincronização estiver conectada.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
@@ -1384,12 +1765,718 @@ class _AnimalsEmptyState extends StatelessWidget {
   }
 }
 
+class ProfilePermissionsPage extends StatefulWidget {
+  const ProfilePermissionsPage({super.key});
+
+  @override
+  State<ProfilePermissionsPage> createState() => _ProfilePermissionsPageState();
+}
+
+class _ProfilePermissionsPageState extends State<ProfilePermissionsPage>
+    with SingleTickerProviderStateMixin {
+  final _searchController = TextEditingController();
+  late final TabController _tabController;
+  late final SoapClient _permissionClient;
+  late final PermissionRepository _permissionRepository;
+  int _tab = 0;
+  int? _selectedProfile;
+  int? _selectedGroup;
+  List<_PermissionProfile> _profiles = const [];
+  List<PermissionDefinitionRecord> _catalog = const [];
+  late final Map<String, bool> _permissions;
+  bool _loadingPermissions = false;
+  bool _loadingProfiles = true;
+  bool _loadingCatalog = true;
+  bool _loadingAccess = true;
+  Map<int, bool> _loggedProfilePermissions = const {};
+
+  List<_PermissionGroup> get _groups => [
+    for (final group in _catalog.map((item) => item.group).toSet())
+      _PermissionGroup(group, _groupIcon(group)),
+  ];
+
+  List<_PermissionRoutine> get _routines => [
+    for (final key
+        in _catalog.map((item) => '${item.group}|${item.routine}').toSet())
+      _PermissionRoutine(
+        key.split('|').first,
+        key.split('|').last,
+        _routineIcon(key.split('|').last),
+      ),
+  ];
+
+  List<_PermissionDefinition> get _profilePermissions => _catalog
+      .where((item) => item.routine.toUpperCase() == 'PERFIL')
+      .map((item) => _PermissionDefinition(item.code, item.action))
+      .toList(growable: false);
+
+  IconData _groupIcon(String group) {
+    switch (group.toUpperCase()) {
+      case 'AJUSTES':
+        return Icons.settings_outlined;
+      case 'CADASTROS':
+        return Icons.folder_outlined;
+      case 'SERVICOS':
+        return Icons.handyman_outlined;
+      default:
+        return Icons.folder_outlined;
+    }
+  }
+
+  IconData _routineIcon(String routine) {
+    switch (routine.toUpperCase()) {
+      case 'PERFIL':
+        return Icons.person_outline;
+      case 'ANIMAIS':
+        return Icons.pets_outlined;
+      case 'LOTES':
+        return Icons.grid_view_outlined;
+      case 'DIETAS':
+        return Icons.restaurant_outlined;
+      case 'MEDICAMENTOS':
+        return Icons.medication_outlined;
+      case 'FORNECEDORES':
+        return Icons.local_shipping_outlined;
+      default:
+        return Icons.list_alt_outlined;
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _permissionClient = SoapClient(suffix: ClientRoutingSession.suffix);
+    _permissionRepository = PermissionRepository(soapClient: _permissionClient);
+    _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(_handleTabChange);
+    _permissions = {};
+    _loadProfiles();
+    _loadPermissionCatalog();
+    _loadLoggedProfileAccess();
+  }
+
+  @override
+  void dispose() {
+    _tabController
+      ..removeListener(_handleTabChange)
+      ..dispose();
+    _searchController.dispose();
+    _permissionClient.close();
+    super.dispose();
+  }
+
+  void _handleTabChange() {
+    if (_tabController.indexIsChanging) return;
+    if (_tab != _tabController.index && mounted) {
+      setState(() => _tab = _tabController.index);
+    }
+  }
+
+  String _permissionKey(String profile, int permissionCode) =>
+      '$profile|$permissionCode';
+
+  bool get _canManageProfiles =>
+      !_loadingAccess && ClientRoutingSession.canGrantPermissions;
+
+  bool _loggedPermissionAllowed(String action) {
+    final permission = _catalog.cast<PermissionDefinitionRecord?>().firstWhere(
+      (item) =>
+          item!.routine.toUpperCase() == 'PERFIL' &&
+          item.action.toUpperCase().startsWith(action.toUpperCase()),
+      orElse: () => null,
+    );
+    return permission != null &&
+        _loggedProfilePermissions[permission.code] == true;
+  }
+
+  bool get _canEditPermissions =>
+      _canManageProfiles &&
+      _selectedProfile != null &&
+      _profiles[_selectedProfile!].code != 1;
+
+  List<_PermissionProfile> get _filteredProfiles {
+    final query = _searchController.text.trim().toLowerCase();
+    return _profiles
+        .where((profile) => profile.name.toLowerCase().contains(query))
+        .toList(growable: false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Perfil'),
+        backgroundColor: colors.primary,
+        foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            tooltip: 'Atualizar',
+            onPressed: _refreshProfilesAndPermissions,
+            icon: const Icon(Icons.refresh),
+          ),
+          if (_tab == 0)
+            IconButton(
+              tooltip: 'Incluir perfil',
+              onPressed: _loggedPermissionAllowed('INCLUIR')
+                  ? _addProfile
+                  : null,
+              icon: const Icon(Icons.add),
+            ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Material(
+            color: colors.surface,
+            child: TabBar(
+              controller: _tabController,
+              labelColor: colors.primary,
+              unselectedLabelColor: colors.onSurfaceVariant,
+              indicatorColor: colors.primary,
+              tabs: const [
+                Tab(text: 'Perfil'),
+                Tab(text: 'Grupos'),
+                Tab(text: 'Rotinas'),
+              ],
+              onTap: _selectTab,
+            ),
+          ),
+          Expanded(child: _buildTabContent()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabContent() {
+    switch (_tab) {
+      case 1:
+        return _buildGroups();
+      case 2:
+        return _buildRoutines();
+      default:
+        return _buildProfiles();
+    }
+  }
+
+  void _selectTab(int tab) {
+    if (tab > 0 && _selectedProfile == null) {
+      _showNavigationMessage('Selecione um perfil primeiro.');
+      _tabController.index = 0;
+      return;
+    }
+    if (tab > 1 && _selectedGroup == null) {
+      _showNavigationMessage('Selecione um grupo primeiro.');
+      _tabController.index = 1;
+      return;
+    }
+    setState(() => _tab = tab);
+  }
+
+  void _showNavigationMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Widget _buildProfiles() {
+    if (_loadingProfiles) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+          child: TextField(
+            controller: _searchController,
+            onChanged: (_) => setState(() {}),
+            decoration: const InputDecoration(
+              hintText: 'Perfil',
+              prefixIcon: Icon(Icons.search),
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ),
+        Expanded(
+          child: ListView.separated(
+            itemCount: _filteredProfiles.length,
+            separatorBuilder: (_, index) => const Divider(height: 1),
+            itemBuilder: (context, index) {
+              final profile = _filteredProfiles[index];
+              final profileIndex = _profiles.indexOf(profile);
+              return ListTile(
+                title: Text(
+                  profile.name,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                selected: profileIndex == _selectedProfile,
+                selectedTileColor: Theme.of(context)
+                    .colorScheme
+                    .primaryContainer
+                    .withValues(alpha: 0.35),
+                trailing:
+                    profile.code != 1 &&
+                        (_loggedPermissionAllowed('ALTERAR') ||
+                            _loggedPermissionAllowed('EXCLUIR'))
+                    ? PopupMenuButton<String>(
+                        tooltip: 'Acoes do perfil',
+                        onOpened: _refreshLoggedProfileAccess,
+                        onSelected: (action) {
+                          if (action == 'edit') _editProfile(profile);
+                          if (action == 'delete') _deleteProfile(profile);
+                        },
+                        itemBuilder: (_) => [
+                          PopupMenuItem<String>(
+                            value: 'edit',
+                            enabled: _loggedPermissionAllowed('ALTERAR'),
+                            child: const Text('Alterar perfil'),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'delete',
+                            enabled: _loggedPermissionAllowed('EXCLUIR'),
+                            child: const Text('Excluir perfil'),
+                          ),
+                        ],
+                      )
+                    : const Icon(Icons.lock_outline),
+                onTap: () => _selectProfile(profileIndex),
+              );
+            },
+          ),
+        ),
+        _recordCount(_filteredProfiles.length),
+      ],
+    );
+  }
+
+  Widget _buildGroups() {
+    if (_loadingCatalog) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return Column(
+      children: [
+        Expanded(
+          child: ListView.separated(
+            itemCount: _groups.length,
+            separatorBuilder: (_, index) => const Divider(height: 1),
+            itemBuilder: (context, index) => ListTile(
+              leading: Icon(_groups[index].icon),
+              selected: index == _selectedGroup,
+              title: Text(
+                _groups[index].name,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => setState(() {
+                _selectedGroup = index;
+                _tab = 2;
+                _tabController.index = 2;
+              }),
+            ),
+          ),
+        ),
+        _recordCount(_groups.length),
+      ],
+    );
+  }
+
+  Widget _buildRoutines() {
+    final profile = _profiles[_selectedProfile!];
+    final group = _groups[_selectedGroup!];
+    final routines = _routines
+        .where((routine) => routine.group == group.name)
+        .toList(growable: false);
+    if (_loadingPermissions) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return ListView(
+      padding: const EdgeInsets.only(top: 4, bottom: 20),
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Text(
+            'Permissoes de ${profile.name}',
+            style: Theme.of(context).textTheme.titleLarge
+                ?.copyWith(fontWeight: FontWeight.w700),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Text(
+            group.name,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+        ),
+        for (final routine in routines)
+          ExpansionTile(
+            leading: Icon(routine.icon),
+            title: Text(
+              routine.name,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            children: [
+              for (final permission in _catalog.where(
+                (item) =>
+                    item.group == group.name && item.routine == routine.name,
+              ))
+                CheckboxListTile(
+                  value:
+                      _permissions[_permissionKey(
+                        profile.name,
+                        permission.code,
+                      )],
+                  title: Text(permission.action),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  onChanged: _canEditPermissions
+                      ? (value) => _updatePermission(
+                          profile,
+                          _PermissionDefinition(
+                            permission.code,
+                            permission.action,
+                          ),
+                          value ?? false,
+                        )
+                      : null,
+                ),
+            ],
+          ),
+      ],
+    );
+  }
+
+  Future<void> _selectProfile(int profileIndex) async {
+    setState(() {
+      _selectedProfile = profileIndex;
+      _selectedGroup = null;
+      _loadingPermissions = true;
+      _tab = 1;
+      _tabController.index = 1;
+    });
+    try {
+      final loaded = await _permissionRepository.fetchProfilePermissions(
+        _profiles[profileIndex].code,
+      );
+      if (!mounted) return;
+      setState(() {
+        for (final entry in loaded.entries) {
+          _permissions[_permissionKey(
+                _profiles[profileIndex].name,
+                entry.key,
+              )] =
+              entry.value;
+        }
+        _loadingPermissions = false;
+      });
+    } on SoapException catch (error) {
+      if (!mounted) return;
+      setState(() => _loadingPermissions = false);
+      _showNavigationMessage(error.message);
+    }
+  }
+
+  Future<void> _loadProfiles() async {
+    try {
+      final loaded = await _permissionRepository.fetchProfiles();
+      if (!mounted) return;
+      setState(() {
+        _profiles = loaded
+            .map(
+              (profile) =>
+                  _PermissionProfile(profile.code, profile.description),
+            )
+            .toList(growable: false);
+        _loadingProfiles = false;
+      });
+    } on SoapException catch (error) {
+      if (!mounted) return;
+      setState(() => _loadingProfiles = false);
+      _showNavigationMessage(error.message);
+    }
+  }
+
+  Future<void> _loadPermissionCatalog() async {
+    try {
+      final loaded = await _permissionRepository.fetchPermissionCatalog();
+      if (!mounted) return;
+      setState(() {
+        _catalog = loaded;
+        _loadingCatalog = false;
+      });
+    } on SoapException catch (error) {
+      if (!mounted) return;
+      setState(() => _loadingCatalog = false);
+      _showNavigationMessage(error.message);
+    }
+  }
+
+  Future<void> _loadLoggedProfileAccess() async {
+    final loggedProfile = ClientRoutingSession.profileCode;
+    if (loggedProfile <= 0) {
+      if (mounted) setState(() => _loadingAccess = false);
+      return;
+    }
+    try {
+      final permissions = await _permissionRepository.fetchProfilePermissions(
+        loggedProfile,
+      );
+      if (!mounted) return;
+      setState(() {
+        _loggedProfilePermissions = permissions;
+        ClientRoutingSession.canGrantPermissions = permissions[101] ?? false;
+        _loadingAccess = false;
+      });
+    } on SoapException catch (error) {
+      if (!mounted) return;
+      setState(() => _loadingAccess = false);
+      _showNavigationMessage(error.message);
+    }
+  }
+
+  Future<void> _refreshLoggedProfileAccess() async {
+    final loggedProfile = ClientRoutingSession.profileCode;
+    if (loggedProfile <= 0) return;
+    try {
+      final permissions = await _permissionRepository.fetchProfilePermissions(
+        loggedProfile,
+      );
+      if (!mounted) return;
+      setState(() {
+        _loggedProfilePermissions = permissions;
+        ClientRoutingSession.canGrantPermissions = permissions[101] ?? false;
+      });
+    } on SoapException catch (error) {
+      if (mounted) _showNavigationMessage(error.message);
+    }
+  }
+
+  Future<void> _refreshProfilesAndPermissions() async {
+    final selectedCode = _selectedProfile == null
+        ? null
+        : _profiles[_selectedProfile!].code;
+    setState(() {
+      _loadingProfiles = true;
+      _loadingCatalog = true;
+      _loadingPermissions = selectedCode != null;
+    });
+
+    try {
+      final loaded = await _permissionRepository.fetchProfiles();
+      final catalog = await _permissionRepository.fetchPermissionCatalog();
+      final profiles = loaded
+          .map(
+            (profile) => _PermissionProfile(profile.code, profile.description),
+          )
+          .toList(growable: false);
+      final selectedIndex = selectedCode == null
+          ? null
+          : profiles.indexWhere((profile) => profile.code == selectedCode);
+      Map<int, bool> permissions = const {};
+      if (selectedIndex != null && selectedIndex >= 0) {
+        permissions = await _permissionRepository.fetchProfilePermissions(
+          profiles[selectedIndex].code,
+        );
+      }
+      if (!mounted) return;
+      setState(() {
+        _profiles = profiles;
+        _catalog = catalog;
+        _selectedProfile = selectedIndex != null && selectedIndex >= 0
+            ? selectedIndex
+            : null;
+        _loadingProfiles = false;
+        _loadingCatalog = false;
+        _loadingPermissions = false;
+        if (_selectedProfile != null) {
+          for (final entry in permissions.entries) {
+            _permissions[_permissionKey(
+                  profiles[_selectedProfile!].name,
+                  entry.key,
+                )] =
+                entry.value;
+          }
+        }
+      });
+    } on SoapException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loadingProfiles = false;
+        _loadingCatalog = false;
+        _loadingPermissions = false;
+      });
+      _showNavigationMessage(error.message);
+    }
+  }
+
+  Future<void> _updatePermission(
+    _PermissionProfile profile,
+    _PermissionDefinition permission,
+    bool allowed,
+  ) async {
+    final key = _permissionKey(profile.name, permission.code);
+    final previous = _permissions[key] ?? false;
+    setState(() => _permissions[key] = allowed);
+    try {
+      await _permissionRepository.updatePermission(
+        profileCode: profile.code,
+        permissionCode: permission.code,
+        allowed: allowed,
+      );
+      if (!mounted) return;
+      _showNavigationMessage('Permissão atualizada.');
+    } on SoapException catch (error) {
+      if (!mounted) return;
+      setState(() => _permissions[key] = previous);
+      _showNavigationMessage(error.message);
+    }
+  }
+
+  Widget _recordCount(int count) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: Text('$count registro(s)'),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _addProfile() async {
+    final description = await _profileDescriptionDialog(
+      title: 'Incluir perfil',
+    );
+    if (description == null || !mounted) return;
+    try {
+      await _permissionRepository.saveProfile(description: description);
+      if (!mounted) return;
+      _showNavigationMessage('Perfil incluído.');
+      await _refreshProfilesAndPermissions();
+    } on SoapException catch (error) {
+      if (mounted) _showNavigationMessage(error.message);
+    }
+  }
+
+  Future<void> _editProfile(_PermissionProfile profile) async {
+    if (profile.code == 1) return;
+    final description = await _profileDescriptionDialog(
+      title: 'Alterar perfil',
+      initialValue: profile.name,
+    );
+    if (description == null || !mounted) return;
+    try {
+      await _permissionRepository.saveProfile(
+        code: profile.code,
+        description: description,
+      );
+      if (!mounted) return;
+      _showNavigationMessage('Perfil alterado.');
+      await _refreshProfilesAndPermissions();
+    } on SoapException catch (error) {
+      if (mounted) _showNavigationMessage(error.message);
+    }
+  }
+
+  Future<void> _deleteProfile(_PermissionProfile profile) async {
+    if (profile.code == 1) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Excluir perfil?'),
+        content: Text('O perfil "${profile.name}" será excluído.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await _permissionRepository.deleteProfile(profile.code);
+      if (!mounted) return;
+      _showNavigationMessage('Perfil excluído.');
+      await _refreshProfilesAndPermissions();
+    } on SoapException catch (error) {
+      if (mounted) _showNavigationMessage(error.message);
+    }
+  }
+
+  Future<String?> _profileDescriptionDialog({
+    required String title,
+    String initialValue = '',
+  }) async {
+    var description = initialValue;
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: TextFormField(
+          initialValue: initialValue,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          maxLength: 50,
+          decoration: const InputDecoration(labelText: 'Descrição'),
+          onChanged: (value) => description = value,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, description.trim()),
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    );
+    return result;
+  }
+}
+
+class _PermissionProfile {
+  const _PermissionProfile(this.code, this.name);
+
+  final int code;
+  final String name;
+}
+
+class _PermissionDefinition {
+  const _PermissionDefinition(this.code, this.label);
+
+  final int code;
+  final String label;
+}
+
+class _PermissionGroup {
+  const _PermissionGroup(this.name, this.icon);
+
+  final String name;
+  final IconData icon;
+}
+
+class _PermissionRoutine {
+  const _PermissionRoutine(this.group, this.name, this.icon);
+
+  final String group;
+  final String name;
+  final IconData icon;
+}
+
 class _StatusBanner extends StatelessWidget {
   const _StatusBanner();
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final company = ClientRoutingSession.company.trim();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
       decoration: BoxDecoration(
@@ -1409,7 +2496,10 @@ class _StatusBanner extends StatelessWidget {
               ),
             ),
           ),
-          Text('Azure', style: TextStyle(color: colors.onPrimaryContainer)),
+          Text(
+            company.isEmpty ? 'Online' : company,
+            style: TextStyle(color: colors.onPrimaryContainer),
+          ),
         ],
       ),
     );
@@ -1479,7 +2569,7 @@ class _QuickAccessGrid extends StatelessWidget {
             ),
             _ActionTile(tileLabel: 'Tarefas', icon: Icons.checklist_outlined),
             _ActionTile(
-              tileLabel: 'Diagnostico gestacional',
+              tileLabel: 'Diagnóstico gestacional',
               icon: Icons.monitor_heart_outlined,
             ),
           ],
@@ -1503,8 +2593,8 @@ class _ModuleList extends StatelessWidget {
         ),
         SizedBox(height: 10),
         _ActionTile(
-          tileLabel: 'Servicos',
-          subtitle: 'Manejo, inseminacao, pesagem e parto',
+          tileLabel: 'Serviços',
+          subtitle: 'Manejo, inseminação, pesagem e parto',
           icon: Icons.handyman_outlined,
         ),
         SizedBox(height: 10),
@@ -1516,7 +2606,7 @@ class _ModuleList extends StatelessWidget {
         SizedBox(height: 10),
         _ActionTile(
           tileLabel: 'Ajustes',
-          subtitle: 'Perfil, sincronizacao e configuracoes',
+          subtitle: 'Perfil, sincronização e configurações',
           icon: Icons.settings_outlined,
         ),
       ],

@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
 
+import 'client_routing.dart';
+
 class SoapException implements Exception {
   const SoapException(this.message, {this.statusCode});
 
@@ -24,17 +26,20 @@ class SoapClient {
       'COWSYSTEM_SOAP_USER',
       defaultValue: 'FVR',
     ),
-    this.deviceId = const String.fromEnvironment(
-      'COWSYSTEM_DEVICE_ID',
-      defaultValue: 'flutter',
+    String? deviceId,
+    this.suffix = const String.fromEnvironment(
+      'COWSYSTEM_SUFFIX',
+      defaultValue: '_flutter',
     ),
     this.timeout = const Duration(seconds: 40),
-  }) : _client = client ?? http.Client();
+  }) : deviceId = deviceId ?? ClientRoutingSession.deviceId,
+       _client = client ?? http.Client();
 
   final http.Client _client;
   final String endpoint;
   final String username;
   final String deviceId;
+  String suffix;
   final Duration timeout;
 
   Future<String> call({

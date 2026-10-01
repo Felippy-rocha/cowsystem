@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:cowsystem/data/client_routing.dart';
 import 'package:cowsystem/data/soap_client.dart';
 
 void main() {
@@ -22,5 +23,23 @@ void main() {
     expect(envelope, contains('<Importar xmlns="http://tempuri.org/">'));
 
     client.close();
+  });
+
+  test('usa por padrao o id resolvido no roteamento do dispositivo', () {
+    ClientRoutingSession.deviceId = 'android-id-dinamico';
+    final client = SoapClient();
+
+    final envelope = client.buildEnvelope(
+      action: 'Importar',
+      body: '',
+      password: '',
+    );
+
+    expect(
+      envelope,
+      contains('<Dispositivo>android-id-dinamico</Dispositivo>'),
+    );
+    client.close();
+    ClientRoutingSession.deviceId = '';
   });
 }

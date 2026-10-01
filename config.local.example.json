@@ -1,0 +1,8 @@
+{
+  "COWSYSTEM_DEVICE_ID": "",
+  "COWSYSTEM_SOAP_PASSWORD": "",
+  "COWSYSTEM_SOAP_URL": "https://wscowsystem.azurewebsites.net/servico.asmx",
+  "COWSYSTEM_SOAP_USER": "FVR",
+  "COWSYSTEM_SUFFIX": "_flutter",
+  "COWSYSTEM_RESOLVE_CLIENT": "true"
+}

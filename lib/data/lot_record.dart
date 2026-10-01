@@ -10,9 +10,10 @@ class LotRecord {
     this.preCalvingDays = 0,
     this.pregnancyDiagnosis = 0,
     this.milkFeeding = 0,
-    this.stallType = 0,
+    int stallType = 0,
+    int? feedingLocation,
     this.active = true,
-  });
+  }) : stallType = feedingLocation ?? stallType;
 
   final int code;
   final String name;
@@ -26,6 +27,8 @@ class LotRecord {
   final int milkFeeding;
   final int stallType;
   final bool active;
+
+  int get feedingLocation => stallType;
 
   factory LotRecord.fromJson(Map<String, dynamic> json) {
     int number(String key) => int.tryParse('${json[key] ?? 0}') ?? 0;

@@ -1,0 +1,15 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "CowSystem (emulador)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "deviceId": "emulator-5554",
+      "toolArgs": [
+        "--dart-define-from-file=config.local.json"
+      ]
+    }
+  ]
+}

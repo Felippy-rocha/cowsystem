@@ -17,7 +17,7 @@ class AnimalRepository {
       password: const String.fromEnvironment('COWSYSTEM_SOAP_PASSWORD'),
       body:
           '<xSql>${_escape(_animalsQuery(where))}</xSql>'
-          '<Sufixo>_flutter</Sufixo>'
+          '<Sufixo>${_escape(_soapClient.suffix)}</Sufixo>'
           '<BancoLocal>false</BancoLocal>',
     );
 
@@ -36,7 +36,7 @@ class AnimalRepository {
           '<xSql>${_escape(_insertSql(animal))}</xSql>'
           '<Login>FVR</Login>'
           '<Senha>${_escape(const String.fromEnvironment('COWSYSTEM_SOAP_PASSWORD'))}</Senha>'
-          '<Sufixo>_flutter</Sufixo>'
+          '<Sufixo>${_escape(_soapClient.suffix)}</Sufixo>'
           '<BancoLocal>false</BancoLocal>',
     );
     _cache.add(animal);
@@ -44,9 +44,8 @@ class AnimalRepository {
 
   String _animalsQuery(String where) {
     final condition = where.trim().isEmpty ? 'WHERE ATIVO = 1' : where;
-    return 'SELECT BRINCO, BRINCOELETRONICO, DOADORA, CODLOTE, '
-        'DATANASCIMENTO, STATUSREPRODUCAO, STATUSPRODUCAO, '
-        'ORIGEM, BETACASEINA, ATIVO FROM TB_ANIMAIS $condition';
+    return 'SELECT * FROM dbo.LISTA_ANIMAIS() $condition '
+        'ORDER BY TRY_CONVERT(INT, BRINCO), BRINCO';
   }
 
   List<AnimalRecord> _parseJsonRows(String response) {
