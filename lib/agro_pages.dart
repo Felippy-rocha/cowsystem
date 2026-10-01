@@ -389,3 +389,20 @@ AgroEntityConfig talhoesConfig() => AgroEntityConfig(
       'EXEC SP_TB_TALHOES_INSERT_UPDATE @CODTALHAO=$id, @TALHAO=${sqlText(v['TALHAO'] ?? '')}, @AREA=${sqlNumber(v['AREA'] ?? '')};',
   deleteSql: (id) => 'EXEC SP_TB_TALHOES_DELETE @CODTALHAO=$id;',
 );
+
+AgroEntityConfig simpleTableCatalogConfig({
+  required String title,
+  required String table,
+  required String idColumn,
+  required String descriptionColumn,
+}) => AgroEntityConfig(
+  title: title,
+  table: table,
+  idColumn: idColumn,
+  query:
+      'SELECT $idColumn, $descriptionColumn FROM $table ORDER BY $descriptionColumn',
+  fields: [AgroField(descriptionColumn, title)],
+  saveSql: (id, values) =>
+      'EXEC SP_TB_TABELAS_INSERT_UPDATE $table, $id, ${sqlText(values[descriptionColumn] ?? '')};',
+  deleteSql: (id) => "EXEC SP_TB_TABELAS_DELETE '$table', $id;",
+);

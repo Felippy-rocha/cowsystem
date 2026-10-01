@@ -8,6 +8,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 
+import 'package:cowsystem/agro_pages.dart';
 import 'package:cowsystem/animal_roster_grid.dart';
 import 'package:cowsystem/animal_roster_filter_sheet.dart';
 import 'package:cowsystem/animal_lactation_grid.dart';
@@ -19,6 +20,25 @@ import 'package:cowsystem/data/number_format.dart';
 import 'package:cowsystem/main.dart';
 
 void main() {
+  test('configura tabelas auxiliares pelo contrato B4A', () {
+    final config = simpleTableCatalogConfig(
+      title: 'Doenças',
+      table: 'TB_DOENCAS',
+      idColumn: 'CODDOENCA',
+      descriptionColumn: 'DOENCA',
+    );
+
+    expect(
+      config.query,
+      'SELECT CODDOENCA, DOENCA FROM TB_DOENCAS ORDER BY DOENCA',
+    );
+    expect(
+      config.saveSql(-1, {'DOENCA': "MASTITE D'ÁGUA"}),
+      "EXEC SP_TB_TABELAS_INSERT_UPDATE TB_DOENCAS, -1, N'MASTITE D''ÁGUA';",
+    );
+    expect(config.deleteSql(4), "EXEC SP_TB_TABELAS_DELETE 'TB_DOENCAS', 4;");
+  });
+
   test('formata números no padrão brasileiro', () {
     expect(formatBrazilianNumber(9406.2), '9.406,2');
     expect(formatBrazilianNumber(55396.6), '55.396,6');

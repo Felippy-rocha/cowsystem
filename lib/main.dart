@@ -458,6 +458,13 @@ class ModulePage extends StatelessWidget {
           _ModuleEntry('Protocolos', Icons.assignment_outlined),
           _ModuleEntry('Tratamentos', Icons.healing_outlined),
           _ModuleEntry('Touros', Icons.pets_outlined),
+          _ModuleEntry('Doenças', Icons.health_and_safety_outlined),
+          _ModuleEntry('Local de estocagem', Icons.warehouse_outlined),
+          _ModuleEntry('Motivos de descarte', Icons.delete_outline),
+          _ModuleEntry('Tipo comentário', Icons.comment_outlined),
+          _ModuleEntry('Tipos de insumos', Icons.category_outlined),
+          _ModuleEntry('Tipo medicamento', Icons.medication_outlined),
+          _ModuleEntry('Tipos de tratamentos', Icons.healing_outlined),
         ];
       case 'Serviços':
         return const [
@@ -548,6 +555,76 @@ class ModulePage extends StatelessWidget {
                       }
                       if (entry.label == 'Talhões') {
                         return AgroCatalogPage(config: talhoesConfig());
+                      }
+                      if (entry.label == 'Doenças') {
+                        return AgroCatalogPage(
+                          config: simpleTableCatalogConfig(
+                            title: 'Doenças',
+                            table: 'TB_DOENCAS',
+                            idColumn: 'CODDOENCA',
+                            descriptionColumn: 'DOENCA',
+                          ),
+                        );
+                      }
+                      if (entry.label == 'Local de estocagem') {
+                        return AgroCatalogPage(
+                          config: simpleTableCatalogConfig(
+                            title: 'Local',
+                            table: 'TB_LOCALESTOQUE',
+                            idColumn: 'CODLOCAL',
+                            descriptionColumn: 'LOCAL',
+                          ),
+                        );
+                      }
+                      if (entry.label == 'Motivos de descarte') {
+                        return AgroCatalogPage(
+                          config: simpleTableCatalogConfig(
+                            title: 'Motivo descarte',
+                            table: 'TB_MOTIVODESCARTE',
+                            idColumn: 'CODMOTIVODESCARTE',
+                            descriptionColumn: 'MOTIVODESCARTE',
+                          ),
+                        );
+                      }
+                      if (entry.label == 'Tipo comentário') {
+                        return AgroCatalogPage(
+                          config: simpleTableCatalogConfig(
+                            title: 'Tipo comentário',
+                            table: 'TB_TIPOCOMENTARIO',
+                            idColumn: 'CODTIPO',
+                            descriptionColumn: 'TIPOCOMENTARIO',
+                          ),
+                        );
+                      }
+                      if (entry.label == 'Tipos de insumos') {
+                        return AgroCatalogPage(
+                          config: simpleTableCatalogConfig(
+                            title: 'Insumos',
+                            table: 'TB_TIPOINSUMOS',
+                            idColumn: 'CODTIPOINSUMO',
+                            descriptionColumn: 'INSUMO',
+                          ),
+                        );
+                      }
+                      if (entry.label == 'Tipo medicamento') {
+                        return AgroCatalogPage(
+                          config: simpleTableCatalogConfig(
+                            title: 'Tipo medicamento',
+                            table: 'TB_TIPOMEDICAMENTO',
+                            idColumn: 'CODTIPOMEDICAMENTO',
+                            descriptionColumn: 'TIPOMEDICAMENTO',
+                          ),
+                        );
+                      }
+                      if (entry.label == 'Tipos de tratamentos') {
+                        return AgroCatalogPage(
+                          config: simpleTableCatalogConfig(
+                            title: 'Tipos de tratamentos',
+                            table: 'TB_TIPOTRATAMENTO',
+                            idColumn: 'CODTIPOTRATAMENTO',
+                            descriptionColumn: 'TIPOTRATAMENTO',
+                          ),
+                        );
                       }
                       if (entry.label == 'Perfil') {
                         return const ProfilePermissionsPage();
