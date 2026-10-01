@@ -33,6 +33,7 @@ import 'package:cowsystem/data/herd_summary_repository.dart';
 import 'package:cowsystem/data/milk_summary_repository.dart';
 import 'package:cowsystem/data/consumption_analysis_repository.dart';
 import 'package:cowsystem/data/open_tasks_repository.dart';
+import 'package:cowsystem/data/birth_analysis_repository.dart';
 import 'package:cowsystem/data/prevision_touch_repository.dart';
 import 'package:cowsystem/data/diet_repository.dart';
 import 'package:cowsystem/data/general_supply_inventory_repository.dart';
@@ -48,6 +49,20 @@ import 'package:cowsystem/data/number_format.dart';
 import 'package:cowsystem/main.dart';
 
 void main() {
+  test('gera análise de partos por intervalo de datas', () {
+    expect(
+      birthAnalysisGenerateSql(dateStart: '01/05/2026', dateEnd: '24/05/2026'),
+      "EXEC SP_REL_ANALISE_PARTOS '2026-05-01', '2026-05-24';",
+    );
+    expect(
+      () => birthAnalysisGenerateSql(
+        dateStart: '31/02/2026',
+        dateEnd: '24/05/2026',
+      ),
+      throwsFormatException,
+    );
+  });
+
   test('gera relatório de tarefas em aberto por data e execução', () {
     expect(
       openTasksGenerateSql(
