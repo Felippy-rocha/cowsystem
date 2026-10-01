@@ -21,6 +21,7 @@ import 'dry_matter_history_page.dart';
 import 'animal_protocol_page.dart';
 import 'animal_feeding_page.dart';
 import 'animal_cycles_page.dart';
+import 'touch_session_page.dart';
 import 'rfid_association_page.dart';
 import 'general_supply_inventory_page.dart';
 import 'data/animal_record.dart';
@@ -512,6 +513,7 @@ class ModulePage extends StatelessWidget {
           _ModuleEntry('Registrar secagem', Icons.opacity_outlined),
           _ModuleEntry('Pré-Parto', Icons.pregnant_woman_outlined),
           _ModuleEntry('Casqueamento', Icons.content_cut_outlined),
+          _ModuleEntry('Toque', Icons.monitor_heart_outlined),
         ];
       case 'Relatorios':
         return const [
@@ -741,6 +743,9 @@ class ModulePage extends StatelessWidget {
                       }
                       if (entry.label == 'Casqueamento') {
                         return const AnimalHoofTrimmingPage();
+                      }
+                      if (entry.label == 'Toque') {
+                        return const TouchSessionsPage();
                       }
                       return ModulePage(title: entry.label);
                     },

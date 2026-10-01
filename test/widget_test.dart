@@ -28,6 +28,7 @@ import 'package:cowsystem/data/animal_protocol_repository.dart';
 import 'package:cowsystem/data/feeding_repository.dart';
 import 'package:cowsystem/data/animal_cycles_repository.dart';
 import 'package:cowsystem/data/medication_inventory_repository.dart';
+import 'package:cowsystem/data/touch_session_repository.dart';
 import 'package:cowsystem/data/general_supply_inventory_repository.dart';
 import 'package:cowsystem/data/animal_insemination_repository.dart';
 import 'package:cowsystem/data/animal_birth_repository.dart';
@@ -41,6 +42,21 @@ import 'package:cowsystem/data/number_format.dart';
 import 'package:cowsystem/main.dart';
 
 void main() {
+  test('gera procedures de criação e inclusão de animal no toque', () {
+    expect(
+      touchSessionCreateSql(date: '24/05/2026', employeeCode: 3),
+      "EXEC SP_TB_TOQUE_INSERT @DATA = '2026-05-24', @CODFUNCIONARIO = 3;",
+    );
+    expect(
+      touchAnimalInsertSql(touchCode: 8, animalCode: 43),
+      'EXEC SP_TB_TOQUE_INSERT_INDIVIDUAL @CODTOQUE = 8, @CODANIMAL = 43;',
+    );
+    expect(
+      () => touchSessionCreateSql(date: '31/02/2026', employeeCode: 3),
+      throwsFormatException,
+    );
+  });
+
   test('gera procedure de associação RFID com escape', () {
     expect(
       animalChipAssociationSql(43, "RF'ID01"),
