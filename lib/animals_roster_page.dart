@@ -7,6 +7,8 @@ import 'animal_roster_filter_sheet.dart';
 import 'data/animal_record.dart';
 import 'data/animal_repository.dart';
 import 'data/client_routing.dart';
+import 'data/lot_record.dart';
+import 'data/lot_repository.dart';
 import 'data/soap_client.dart';
 
 class AnimalRosterPage extends StatefulWidget {
@@ -449,6 +451,10 @@ class _AnimalRosterPageState extends State<AnimalRosterPage> {
       _showDetails(context, animals.single);
       return;
     }
+    if (action == AnimalSelectionAction.changeLot) {
+      await _changeLot(animals);
+      return;
+    }
     final option = animalSelectionMenuOptions(animals)
         .firstWhere((item) => item.action == action);
     ScaffoldMessenger.of(context)
@@ -460,6 +466,101 @@ class _AnimalRosterPageState extends State<AnimalRosterPage> {
           ),
         ),
       );
+  }
+
+  Future<void> _changeLot(List<AnimalRecord> animals) async {
+    List<LotRecord> lots;
+    try {
+      lots = await LotRepository(soapClient: _soapClient).fetchLots();
+    } on SoapException catch (error) {
+      if (mounted) _showRosterMessage(error.message);
+      return;
+    }
+    if (!mounted || lots.isEmpty) {
+      if (mounted) _showRosterMessage('Nenhum lote ativo disponível.');
+      return;
+    }
+    int? destination = lots.first.code;
+    final destinationCode = await showDialog<int>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(
+            animals.length == 1 ? 'Alterar lote' : 'Alterar lote dos animais',
+          ),
+          content: DropdownButtonFormField<int>(
+            initialValue: destination,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              labelText: 'Lote de destino',
+              border: OutlineInputBorder(),
+            ),
+            items: lots
+                .map(
+                  (lot) =>
+                      DropdownMenuItem(value: lot.code, child: Text(lot.name)),
+                )
+                .toList(growable: false),
+            onChanged: (value) {
+              if (value != null) setDialogState(() => destination = value);
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, destination),
+              child: const Text('Continuar'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (destinationCode == null || !mounted) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar troca de lote'),
+        content: Text(
+          '${animals.length} animal(is) será(ão) movido(s) para '
+          '${lots.firstWhere((lot) => lot.code == destinationCode).name}.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Alterar lote'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _loading = true);
+    try {
+      await _repository.changeLots(
+        animals: animals,
+        destinationLotCode: destinationCode,
+      );
+      _selectedAnimalCodes.clear();
+      await _load();
+    } on SoapException catch (error) {
+      if (mounted) {
+        setState(() {
+          _error = error.message;
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  void _showRosterMessage(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _toggleGridAnimal(AnimalRecord animal) {

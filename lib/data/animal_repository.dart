@@ -42,6 +42,27 @@ class AnimalRepository {
     _cache.add(animal);
   }
 
+  Future<void> changeLots({
+    required List<AnimalRecord> animals,
+    required int destinationLotCode,
+  }) async {
+    final sql = animalLotTransferSql(
+      animalCodes: animals.map((animal) => animal.animalCode).toList(),
+      destinationLotCode: destinationLotCode,
+      currentLotCode: animals.length == 1 ? animals.single.lotCode : null,
+    );
+    await _soapClient.callResult(
+      action: 'ExecSql',
+      password: const String.fromEnvironment('COWSYSTEM_SOAP_PASSWORD'),
+      body:
+          '<xSql>${_escape(sql)}</xSql>'
+          '<Login>FVR</Login>'
+          '<Senha>${_escape(const String.fromEnvironment('COWSYSTEM_SOAP_PASSWORD'))}</Senha>'
+          '<Sufixo>${_escape(_soapClient.suffix)}</Sufixo>'
+          '<BancoLocal>false</BancoLocal>',
+    );
+  }
+
   String _animalsQuery(String where) {
     final condition = where.trim().isEmpty ? 'WHERE ATIVO = 1' : where;
     return 'SELECT * FROM dbo.LISTA_ANIMAIS() $condition '
@@ -91,4 +112,26 @@ class AnimalRepository {
       .replaceAll('>', '&gt;');
 
   String _sqlEscape(String value) => value.replaceAll("'", "''");
+}
+
+String animalLotTransferSql({
+  required List<int> animalCodes,
+  required int destinationLotCode,
+  int? currentLotCode,
+}) {
+  if (animalCodes.isEmpty || animalCodes.any((code) => code <= 0)) {
+    throw ArgumentError('Selecione pelo menos um animal válido.');
+  }
+  if (destinationLotCode <= 0) {
+    throw ArgumentError.value(destinationLotCode, 'destinationLotCode');
+  }
+  final codes = animalCodes.toSet().toList(growable: false);
+  final animals = codes.join(', ');
+  final currentLotFilter = currentLotCode == null
+      ? ''
+      : ' AND CODLOTE = $currentLotCode';
+  return 'UPDATE TB_ANIMAIS SET CODLOTE = $destinationLotCode, '
+      'HORA_DO_REGISTRO = dbo.cHORA_DO_REGISTRO() '
+      'WHERE CODANIMAL ${codes.length == 1 ? '= ${codes.single}' : 'IN ($animals)'}'
+      '$currentLotFilter;';
 }

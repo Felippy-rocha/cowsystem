@@ -22,12 +22,34 @@ import 'package:cowsystem/data/animal_insemination_repository.dart';
 import 'package:cowsystem/data/animal_birth_repository.dart';
 import 'package:cowsystem/data/animal_dry_off_repository.dart';
 import 'package:cowsystem/data/animal_precalving_repository.dart';
+import 'package:cowsystem/data/animal_repository.dart';
 import 'package:cowsystem/data/animal_record.dart';
 import 'package:cowsystem/data/client_routing.dart';
 import 'package:cowsystem/data/number_format.dart';
 import 'package:cowsystem/main.dart';
 
 void main() {
+  test('gera SQL de troca de lote individual ou em multisseleção', () {
+    expect(
+      animalLotTransferSql(
+        animalCodes: [43],
+        destinationLotCode: 8,
+        currentLotCode: 2,
+      ),
+      contains('WHERE CODANIMAL = 43 AND CODLOTE = 2'),
+    );
+    final multiple = animalLotTransferSql(
+      animalCodes: [43, 44, 43],
+      destinationLotCode: 8,
+    );
+    expect(multiple, contains('WHERE CODANIMAL IN (43, 44)'));
+    expect(multiple, contains('dbo.cHORA_DO_REGISTRO()'));
+    expect(
+      () => animalLotTransferSql(animalCodes: const [], destinationLotCode: 8),
+      throwsArgumentError,
+    );
+  });
+
   test('gera procedimentos distintos para registrar e estornar aborto', () {
     expect(
       abortionRegisterSql(
