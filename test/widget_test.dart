@@ -23,12 +23,36 @@ import 'package:cowsystem/data/animal_birth_repository.dart';
 import 'package:cowsystem/data/animal_dry_off_repository.dart';
 import 'package:cowsystem/data/animal_precalving_repository.dart';
 import 'package:cowsystem/data/animal_repository.dart';
+import 'package:cowsystem/data/animal_discard_repository.dart';
 import 'package:cowsystem/data/animal_record.dart';
 import 'package:cowsystem/data/client_routing.dart';
 import 'package:cowsystem/data/number_format.dart';
 import 'package:cowsystem/main.dart';
 
 void main() {
+  test('gera procedimento de descarte com data, motivo e comentário', () {
+    expect(
+      animalDiscardSql(
+        animalCode: 43,
+        reasonCode: 4,
+        date: '20/05/2026',
+        comment: "DESCARTE D'ÁGUA",
+      ),
+      "EXEC SP_TB_ANIMAIS_DESCARTAR @CODANIMAL = 43, "
+      "@CODMOTIVODESCARTE = 4, @DATADESCARTE = '2026-05-20', "
+      "@COMENTARIODESCARTE = N'DESCARTE D''ÁGUA';",
+    );
+    expect(
+      () => animalDiscardSql(
+        animalCode: 0,
+        reasonCode: 4,
+        date: '20/05/2026',
+        comment: '',
+      ),
+      throwsArgumentError,
+    );
+  });
+
   test('gera SQL de troca de lote individual ou em multisseleção', () {
     expect(
       animalLotTransferSql(

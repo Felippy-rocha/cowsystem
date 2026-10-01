@@ -5,6 +5,7 @@ import 'animal_details_page.dart';
 import 'animal_roster_grid.dart';
 import 'animal_roster_filter_sheet.dart';
 import 'data/animal_record.dart';
+import 'data/animal_discard_repository.dart';
 import 'data/animal_repository.dart';
 import 'data/client_routing.dart';
 import 'data/lot_record.dart';
@@ -455,6 +456,10 @@ class _AnimalRosterPageState extends State<AnimalRosterPage> {
       await _changeLot(animals);
       return;
     }
+    if (action == AnimalSelectionAction.discardAnimal && animals.length == 1) {
+      await _discardAnimal(animals.single);
+      return;
+    }
     final option = animalSelectionMenuOptions(animals)
         .firstWhere((item) => item.action == action);
     ScaffoldMessenger.of(context)
@@ -562,6 +567,133 @@ class _AnimalRosterPageState extends State<AnimalRosterPage> {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
   }
+
+  Future<void> _discardAnimal(AnimalRecord animal) async {
+    final discardRepository = AnimalDiscardRepository(soapClient: _soapClient);
+    try {
+      if (!await discardRepository.canDiscard(
+        ClientRoutingSession.profileCode,
+      )) {
+        if (mounted) {
+          _showRosterMessage('Seu perfil não pode descartar animais.');
+        }
+        return;
+      }
+      final reasons = await discardRepository.fetchReasons();
+      if (!mounted) return;
+      if (reasons.isEmpty) {
+        _showRosterMessage('Nenhum motivo de descarte cadastrado.');
+        return;
+      }
+      final draft = await showDialog<Map<String, Object>>(
+        context: context,
+        builder: (context) {
+          int? reasonCode;
+          DateTime discardDate = DateTime.now();
+          final commentController = TextEditingController();
+          return StatefulBuilder(
+            builder: (context, setDialogState) => AlertDialog(
+              title: Text('Descartar brinco ${animal.tag}?'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<int>(
+                      initialValue: reasonCode,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Motivo do descarte',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: reasons
+                          .map(
+                            (reason) => DropdownMenuItem(
+                              value: reason.code,
+                              child: Text(reason.description),
+                            ),
+                          )
+                          .toList(growable: false),
+                      onChanged: (value) =>
+                          setDialogState(() => reasonCode = value),
+                    ),
+                    const SizedBox(height: 12),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Data do descarte'),
+                      subtitle: Text(_formatDateForDisplay(discardDate)),
+                      trailing: const Icon(Icons.calendar_month_outlined),
+                      onTap: () async {
+                        final selected = await showDatePicker(
+                          context: context,
+                          initialDate: discardDate,
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime(2100),
+                        );
+                        if (selected != null) {
+                          setDialogState(() => discardDate = selected);
+                        }
+                      },
+                    ),
+                    TextField(
+                      controller: commentController,
+                      minLines: 2,
+                      maxLines: 4,
+                      decoration: const InputDecoration(
+                        labelText: 'Comentário',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancelar'),
+                ),
+                FilledButton(
+                  onPressed: reasonCode == null
+                      ? null
+                      : () => Navigator.pop(context, {
+                          'reason': reasonCode!,
+                          'date': _formatDateForSql(discardDate),
+                          'comment': commentController.text,
+                        }),
+                  child: const Text('Descartar animal'),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+      if (draft == null || !mounted) return;
+      setState(() => _loading = true);
+      await discardRepository.discard(
+        animalCode: animal.animalCode,
+        reasonCode: draft['reason']! as int,
+        date: draft['date']! as String,
+        comment: draft['comment']! as String,
+      );
+      _selectedAnimalCodes.remove(animal.animalCode);
+      await _load();
+    } on SoapException catch (error) {
+      if (mounted) {
+        setState(() {
+          _error = error.message;
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  String _formatDateForSql(DateTime value) =>
+      '${value.year.toString().padLeft(4, '0')}-'
+      '${value.month.toString().padLeft(2, '0')}-'
+      '${value.day.toString().padLeft(2, '0')}';
+
+  String _formatDateForDisplay(DateTime value) =>
+      '${value.day.toString().padLeft(2, '0')}/'
+      '${value.month.toString().padLeft(2, '0')}/${value.year}';
 
   void _toggleGridAnimal(AnimalRecord animal) {
     if (animal.animalCode <= 0) return;
