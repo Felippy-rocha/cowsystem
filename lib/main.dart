@@ -6,6 +6,7 @@ import 'animals_roster_page.dart';
 import 'animal_carency_page.dart';
 import 'animal_diagnosis_page.dart';
 import 'animal_birth_page.dart';
+import 'animal_dry_off_page.dart';
 import 'animal_insemination_page.dart';
 import 'animal_weight_page.dart';
 import 'animal_weaning_page.dart';
@@ -663,6 +664,9 @@ class ModulePage extends StatelessWidget {
                       }
                       if (entry.label == 'Registrar desmame') {
                         return const AnimalWeaningPage();
+                      }
+                      if (entry.label == 'Registrar secagem') {
+                        return const AnimalDryOffPage();
                       }
                       if (entry.label == 'Pesagem') {
                         return const AnimalWeightPage();

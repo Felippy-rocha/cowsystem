@@ -18,12 +18,37 @@ import 'package:cowsystem/data/animal_carency_repository.dart';
 import 'package:cowsystem/data/animal_diagnosis_repository.dart';
 import 'package:cowsystem/data/animal_insemination_repository.dart';
 import 'package:cowsystem/data/animal_birth_repository.dart';
+import 'package:cowsystem/data/animal_dry_off_repository.dart';
 import 'package:cowsystem/data/animal_record.dart';
 import 'package:cowsystem/data/client_routing.dart';
 import 'package:cowsystem/data/number_format.dart';
 import 'package:cowsystem/main.dart';
 
 void main() {
+  test('consulta vacas em leite e calcula previsão de secagem', () {
+    final query = animalDryOffQuery(tag: '43');
+
+    expect(query, contains("A.STATUSPRODUCAO = 'EM LEITE'"));
+    expect(query, contains('TB_LOTES L'));
+    expect(query, contains('TB_PRENHEZES P'));
+    expect(query, contains('DATEADD(day, ISNULL(L.DIAS_SECAGEM, 0)'));
+    expect(query, contains("BRINCO) LIKE N'%43%'"));
+  });
+
+  test('gera gravação de secagem com medicamento e lote destino', () {
+    expect(
+      animalDryOffSql(
+        animalCode: 43,
+        date: '11/05/2026',
+        destinationLotCode: 7,
+        comment: "SECAGEM D'ÁGUA",
+        medicationCode: 12,
+      ),
+      "EXEC SP_TB_ANIMAIS_SECAR 43, '2026-05-11', 7, "
+      "N'SECAGEM D''ÁGUA', 12;",
+    );
+  });
+
   test('consulta candidatas a parto e indução conforme o B4A', () {
     final query = animalBirthCandidatesQuery(tag: '43');
 
