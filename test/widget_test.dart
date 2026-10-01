@@ -29,6 +29,7 @@ import 'package:cowsystem/data/feeding_repository.dart';
 import 'package:cowsystem/data/animal_cycles_repository.dart';
 import 'package:cowsystem/data/medication_inventory_repository.dart';
 import 'package:cowsystem/data/touch_session_repository.dart';
+import 'package:cowsystem/data/herd_summary_repository.dart';
 import 'package:cowsystem/data/diet_repository.dart';
 import 'package:cowsystem/data/general_supply_inventory_repository.dart';
 import 'package:cowsystem/data/animal_insemination_repository.dart';
@@ -43,6 +44,17 @@ import 'package:cowsystem/data/number_format.dart';
 import 'package:cowsystem/main.dart';
 
 void main() {
+  test('gera resumo do rebanho com a descrição do relatório', () {
+    expect(
+      herdSummaryGenerateSql('LACTANTES'),
+      "EXEC SP_REL_RESUMO_REBANHO N'LACTANTES';",
+    );
+    expect(
+      herdSummaryGenerateSql("LACTANTES D'ÁGUA"),
+      "EXEC SP_REL_RESUMO_REBANHO N'LACTANTES D''ÁGUA';",
+    );
+  });
+
   test('gera procedures de salvar dieta e ingrediente', () {
     expect(
       dietSaveSql(
