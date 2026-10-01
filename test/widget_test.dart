@@ -16,12 +16,62 @@ import 'package:cowsystem/animal_selection_menu.dart';
 import 'package:cowsystem/data/animal_details_repository.dart';
 import 'package:cowsystem/data/animal_carency_repository.dart';
 import 'package:cowsystem/data/animal_diagnosis_repository.dart';
+import 'package:cowsystem/data/animal_insemination_repository.dart';
 import 'package:cowsystem/data/animal_record.dart';
 import 'package:cowsystem/data/client_routing.dart';
 import 'package:cowsystem/data/number_format.dart';
 import 'package:cowsystem/main.dart';
 
 void main() {
+  test('filtra inseminações aptas e permite consulta ampliada', () {
+    final eligible = inseminationAnimalQuery();
+    expect(eligible, contains('dbo.LISTA_ANIMAIS()'));
+    expect(eligible, contains('ATIVO = 1'));
+    expect(eligible, contains("STATUSREPRODUCAO NOT IN ('PRENHA', 'PEV')"));
+    expect(eligible, contains('DOADORA IN (2, 3)'));
+    expect(eligible, contains('DATEDIFF(day'));
+
+    final all = inseminationAnimalQuery(
+      tag: "D'43",
+      includeAll: true,
+      offset: 50,
+      limit: 25,
+    );
+    expect(all, contains("BRINCO = N'D''43'"));
+    expect(all, isNot(contains('ATIVO = 1')));
+    expect(all, contains('OFFSET 50 ROWS FETCH NEXT 25 ROWS ONLY'));
+  });
+
+  test('gera inclusão de inseminação conforme procedure B4A', () {
+    expect(
+      inseminationInsertSql(
+        animalCode: 43,
+        date: '08/05/2026',
+        employeeCode: 9,
+        bullCode: 2,
+        typeCode: 1,
+        comment: "PRIMEIRA IA D'ÁGUA",
+        donorCode: 0,
+      ),
+      "EXEC SP_TB_INSEMINACAO_INSERT_1 @CODANIMAL = 43, "
+      "@DATA = '2026-05-08', @CODFUNCIONARIO = 9, @CODTOURO = 2, "
+      "@CODTIPOIA = 1, @COMENTARIO = N'PRIMEIRA IA D''ÁGUA', "
+      '@CODDOADORA = 0;',
+    );
+    expect(
+      () => inseminationInsertSql(
+        animalCode: 43,
+        date: '31/02/2026',
+        employeeCode: 9,
+        bullCode: 2,
+        typeCode: 1,
+        comment: '',
+        donorCode: 0,
+      ),
+      throwsFormatException,
+    );
+  });
+
   test('aplica resultados de diagnóstico permitidos pelo B4A', () {
     expect(diagnosisResultIds('PEV', 'INSEMINADA'), [4, 5]);
     expect(diagnosisResultIds('VAZIA', 'VAZIA'), [2, 4, 5]);
