@@ -18,6 +18,7 @@ import 'package:cowsystem/data/animal_carency_repository.dart';
 import 'package:cowsystem/data/animal_diagnosis_repository.dart';
 import 'package:cowsystem/data/animal_body_condition_repository.dart';
 import 'package:cowsystem/data/animal_abortion_repository.dart';
+import 'package:cowsystem/data/animal_comment_repository.dart';
 import 'package:cowsystem/data/animal_insemination_repository.dart';
 import 'package:cowsystem/data/animal_birth_repository.dart';
 import 'package:cowsystem/data/animal_dry_off_repository.dart';
@@ -30,6 +31,41 @@ import 'package:cowsystem/data/number_format.dart';
 import 'package:cowsystem/main.dart';
 
 void main() {
+  test('gera inclusão e alteração de comentário conforme o B4A', () {
+    final insert = animalCommentSaveSql(
+      id: null,
+      animalCode: 43,
+      date: '21/05/2026',
+      type: 'SAÚDE',
+      comment: "VACA D'ÁGUA",
+    );
+    expect(insert, contains('SELECT @ID = ISNULL(MAX(ID) + 1, 1)'));
+    expect(
+      insert,
+      contains("@ID, 43, '2026-05-21', N'SAÚDE', N'VACA D''ÁGUA'"),
+    );
+
+    final update = animalCommentSaveSql(
+      id: 8,
+      animalCode: 43,
+      date: '2026-05-21',
+      type: 'SAÚDE',
+      comment: 'REVISÃO',
+    );
+    expect(update, contains('UPDATE TB_COMENTARIOS'));
+    expect(update, contains('WHERE ID = 8'));
+    expect(
+      () => animalCommentSaveSql(
+        id: null,
+        animalCode: 0,
+        date: '21/05/2026',
+        type: '',
+        comment: '',
+      ),
+      throwsArgumentError,
+    );
+  });
+
   test('gera procedimento de descarte com data, motivo e comentário', () {
     expect(
       animalDiscardSql(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'animal_selection_menu.dart';
 import 'animal_details_page.dart';
+import 'animal_comments_page.dart';
 import 'animal_roster_grid.dart';
 import 'animal_roster_filter_sheet.dart';
 import 'data/animal_record.dart';
@@ -451,6 +452,20 @@ class _AnimalRosterPageState extends State<AnimalRosterPage> {
         animals.length == 1) {
       setState(_selectedAnimalCodes.clear);
       _showDetails(context, animals.single);
+      return;
+    }
+    if ((action == AnimalSelectionAction.addComment ||
+            action == AnimalSelectionAction.consultComments) &&
+        animals.length == 1) {
+      setState(_selectedAnimalCodes.clear);
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => AnimalCommentsPage(
+            animal: animals.single,
+            openCreateOnLoad: action == AnimalSelectionAction.addComment,
+          ),
+        ),
+      );
       return;
     }
     if (action == AnimalSelectionAction.changeLot) {
