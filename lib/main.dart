@@ -21,6 +21,7 @@ import 'dry_matter_history_page.dart';
 import 'animal_protocol_page.dart';
 import 'animal_feeding_page.dart';
 import 'animal_cycles_page.dart';
+import 'animal_diet_page.dart';
 import 'touch_session_page.dart';
 import 'rfid_association_page.dart';
 import 'general_supply_inventory_page.dart';
@@ -476,6 +477,7 @@ class ModulePage extends StatelessWidget {
           _ModuleEntry('Fornecedores', Icons.local_shipping_outlined),
           _ModuleEntry('Insumos gerais', Icons.inventory_2_outlined),
           _ModuleEntry('Medicamentos', Icons.medication_outlined),
+          _ModuleEntry('Dietas', Icons.restaurant_outlined),
           _ModuleEntry('Protocolos', Icons.assignment_outlined),
           _ModuleEntry('Tratamentos', Icons.healing_outlined),
           _ModuleEntry('Touros', Icons.pets_outlined),
@@ -599,6 +601,9 @@ class ModulePage extends StatelessWidget {
                       }
                       if (entry.label == 'Tratamentos') {
                         return AgroCatalogPage(config: treatmentsConfig());
+                      }
+                      if (entry.label == 'Dietas') {
+                        return const AnimalDietPage();
                       }
                       if (entry.label == 'Doenças') {
                         return AgroCatalogPage(

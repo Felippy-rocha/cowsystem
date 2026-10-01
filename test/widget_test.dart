@@ -29,6 +29,7 @@ import 'package:cowsystem/data/feeding_repository.dart';
 import 'package:cowsystem/data/animal_cycles_repository.dart';
 import 'package:cowsystem/data/medication_inventory_repository.dart';
 import 'package:cowsystem/data/touch_session_repository.dart';
+import 'package:cowsystem/data/diet_repository.dart';
 import 'package:cowsystem/data/general_supply_inventory_repository.dart';
 import 'package:cowsystem/data/animal_insemination_repository.dart';
 import 'package:cowsystem/data/animal_birth_repository.dart';
@@ -42,6 +43,50 @@ import 'package:cowsystem/data/number_format.dart';
 import 'package:cowsystem/main.dart';
 
 void main() {
+  test('gera procedures de salvar dieta e ingrediente', () {
+    expect(
+      dietSaveSql(
+        code: 12,
+        description: "DIETA D'ÁGUA",
+        date: '24/05/2026',
+        formulator: 'DR. JOÃO',
+        active: 1,
+        dryMatterDate: '23/05/2026',
+        realDryMatter: 34.5,
+        quantityPerDay: 50,
+      ),
+      "EXEC SP_TB_DIETA_INSERT 12, N'DIETA D''ÁGUA', '2026-05-24', "
+      "N'DR. JOÃO', 1, '2026-05-23', '34.50', 50;",
+    );
+    expect(
+      dietIngredientSaveSql(
+        dietCode: 4,
+        ingredientCode: 2,
+        quantity: 12.5,
+        price: 1.2,
+        order: 1,
+        cropYear: '2025',
+        realDryMatter: 34.5,
+        dryMatterQuantity: 6.5,
+      ),
+      "EXEC SP_TB_DIETA_INGREDIENTES_INSERT -1, 4, 2, '12.50', '1.20', "
+      "1, N'2025', '34.50', '6.50';",
+    );
+    expect(
+      () => dietSaveSql(
+        code: 12,
+        description: '',
+        date: '24/05/2026',
+        formulator: 'DR.',
+        active: 1,
+        dryMatterDate: '23/05/2026',
+        realDryMatter: 1,
+        quantityPerDay: 1,
+      ),
+      throwsArgumentError,
+    );
+  });
+
   test('gera procedures de criação e inclusão de animal no toque', () {
     expect(
       touchSessionCreateSql(date: '24/05/2026', employeeCode: 3),
