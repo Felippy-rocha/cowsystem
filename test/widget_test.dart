@@ -62,6 +62,34 @@ void main() {
     );
   });
 
+  test('configura tipos de IA conforme a tabela do B4A', () {
+    final config = inseminationTypesConfig();
+
+    expect(
+      config.query,
+      'SELECT CODTIPOIA, TIPOIA FROM TB_TIPOIA ORDER BY TIPOIA',
+    );
+    expect(
+      config.saveSql(3, {'TIPOIA': 'CONVENCIONAL'}),
+      "EXEC SP_TB_TABELAS_INSERT_UPDATE TB_TIPOIA, 3, N'CONVENCIONAL';",
+    );
+    expect(config.deleteSql(3), "EXEC SP_TB_TABELAS_DELETE 'TB_TIPOIA', 3;");
+  });
+
+  test('configura raças com a relação de grau de sangue do B4A', () {
+    final config = breedsConfig();
+
+    expect(config.query, contains('INNER JOIN TB_GRAUSANGUE'));
+    expect(config.fields[1].optionsValueColumn, 'IDGRAUSANGUE');
+    expect(config.fields[1].optionsLabelColumn, 'FRACAO');
+    expect(config.fields.last.showInForm, isFalse);
+    expect(
+      config.saveSql(-1, {'RACA': 'GIROLANDO', 'IDGRAUSANGUE': '3'}),
+      "EXEC SP_TB_RACA_INSERT_UPDATE -1, N'GIROLANDO', 3;",
+    );
+    expect(config.deleteSql(7), 'EXEC SP_TB_RACA_DELETE 7;');
+  });
+
   test('formata números no padrão brasileiro', () {
     expect(formatBrazilianNumber(9406.2), '9.406,2');
     expect(formatBrazilianNumber(55396.6), '55.396,6');

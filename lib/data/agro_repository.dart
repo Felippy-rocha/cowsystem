@@ -11,9 +11,12 @@ class AgroField {
     this.currency = false,
     this.percent = false,
     this.required = false,
+    this.readOnly = false,
+    this.showInForm = true,
     this.options = const [],
     this.optionsQuery,
     this.optionsValueColumn,
+    this.optionsLabelColumn,
   });
 
   final String key;
@@ -23,9 +26,12 @@ class AgroField {
   final bool currency;
   final bool percent;
   final bool required;
+  final bool readOnly;
+  final bool showInForm;
   final List<String> options;
   final String? optionsQuery;
   final String? optionsValueColumn;
+  final String? optionsLabelColumn;
 }
 
 class AgroEntityConfig {
@@ -69,7 +75,11 @@ class AgroRepository {
     return _parseRows(response);
   }
 
-  Future<List<String>> fetchOptions(String query, String valueColumn) async {
+  Future<Map<String, String>> fetchOptions(
+    String query,
+    String valueColumn,
+    String labelColumn,
+  ) async {
     final response = await soapClient.callResult(
       action: 'Importar_Json',
       password: const String.fromEnvironment('COWSYSTEM_SOAP_PASSWORD'),
@@ -78,10 +88,11 @@ class AgroRepository {
           '<Sufixo>${_xmlEscape(soapClient.suffix)}</Sufixo>'
           '<BancoLocal>false</BancoLocal>',
     );
-    return _parseRows(response)
-        .map((row) => '${row[valueColumn] ?? ''}'.trim())
-        .where((value) => value.isNotEmpty)
-        .toList(growable: false);
+    return {
+      for (final row in _parseRows(response))
+        if ('${row[valueColumn] ?? ''}'.trim().isNotEmpty)
+          '${row[valueColumn]}': '${row[labelColumn] ?? row[valueColumn]}',
+    };
   }
 
   Future<void> save(

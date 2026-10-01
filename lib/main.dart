@@ -459,12 +459,14 @@ class ModulePage extends StatelessWidget {
           _ModuleEntry('Tratamentos', Icons.healing_outlined),
           _ModuleEntry('Touros', Icons.pets_outlined),
           _ModuleEntry('Doenças', Icons.health_and_safety_outlined),
+          _ModuleEntry('Tipos de IAs', Icons.science_outlined),
           _ModuleEntry('Local de estocagem', Icons.warehouse_outlined),
           _ModuleEntry('Motivos de descarte', Icons.delete_outline),
           _ModuleEntry('Tipo comentário', Icons.comment_outlined),
           _ModuleEntry('Tipos de insumos', Icons.category_outlined),
           _ModuleEntry('Tipo medicamento', Icons.medication_outlined),
           _ModuleEntry('Tipos de tratamentos', Icons.healing_outlined),
+          _ModuleEntry('Raças', Icons.pets_outlined),
         ];
       case 'Serviços':
         return const [
@@ -568,6 +570,14 @@ class ModulePage extends StatelessWidget {
                             descriptionColumn: 'DOENCA',
                           ),
                         );
+                      }
+                      if (entry.label == 'Tipos de IAs') {
+                        return AgroCatalogPage(
+                          config: inseminationTypesConfig(),
+                        );
+                      }
+                      if (entry.label == 'Raças') {
+                        return AgroCatalogPage(config: breedsConfig());
                       }
                       if (entry.label == 'Local de estocagem') {
                         return AgroCatalogPage(

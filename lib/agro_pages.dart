@@ -224,16 +224,19 @@ class _AgroCatalogPageState extends State<AgroCatalogPage> {
       for (final field in widget.config.fields)
         field.key: '${row?[field.key] ?? ''}',
     };
-    final options = <String, List<String>>{};
+    final options = <String, Map<String, String>>{};
     try {
       for (final field in widget.config.fields) {
         if (field.optionsQuery != null && field.optionsValueColumn != null) {
           options[field.key] = await _repository.fetchOptions(
             field.optionsQuery!,
             field.optionsValueColumn!,
+            field.optionsLabelColumn ?? field.optionsValueColumn!,
           );
         } else if (field.options.isNotEmpty) {
-          options[field.key] = field.options;
+          options[field.key] = {
+            for (final value in field.options) value: value,
+          };
         }
       }
     } on SoapException catch (error) {
@@ -305,7 +308,7 @@ class _AgroForm extends StatefulWidget {
 
   final AgroEntityConfig config;
   final Map<String, String> values;
-  final Map<String, List<String>> options;
+  final Map<String, Map<String, String>> options;
 
   @override
   State<_AgroForm> createState() => _AgroFormState();
@@ -324,7 +327,9 @@ class _AgroFormState extends State<_AgroForm> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              for (final field in widget.config.fields)
+              for (final field in widget.config.fields.where(
+                (field) => field.showInForm,
+              ))
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: field.date
@@ -383,17 +388,20 @@ class _AgroFormState extends State<_AgroForm> {
   }
 
   Widget _optionField(AgroField field) {
-    final values = [...widget.options[field.key]!];
+    final values = {...widget.options[field.key]!};
     final current = widget.values[field.key];
-    if (current != null && current.isNotEmpty && !values.contains(current)) {
-      values.add(current);
+    if (current != null && current.isNotEmpty && !values.containsKey(current)) {
+      values[current] = current;
     }
     return DropdownButtonFormField<String>(
-      initialValue: values.contains(current) ? current : null,
+      initialValue: values.containsKey(current) ? current : null,
       isExpanded: true,
       decoration: InputDecoration(labelText: field.label),
-      items: values
-          .map((value) => DropdownMenuItem(value: value, child: Text(value)))
+      items: values.entries
+          .map(
+            (entry) =>
+                DropdownMenuItem(value: entry.key, child: Text(entry.value)),
+          )
           .toList(growable: false),
       validator: field.required
           ? (value) => value == null ? 'Preenchimento obrigatório' : null
@@ -549,4 +557,35 @@ AgroEntityConfig suppliersConfig() => AgroEntityConfig(
   saveSql: (id, values) =>
       'EXEC SP_TB_FORNECEDORES_INSERT_UPDATE $id, ${sqlText(values['FORNECEDOR'] ?? '')}, ${sqlText(values['TIPO'] ?? '')}, ${sqlText(values['ENDERECOWEB'] ?? '')}, ${sqlText(values['USUARIO'] ?? '')}, ${sqlText(values['CONTATO'] ?? '')}, ${sqlText(values['TELEFONE'] ?? '')}, ${sqlText(values['CELULAR'] ?? '')}, ${sqlText(values['TIPOINSUMO'] ?? '')};',
   deleteSql: (id) => 'DELETE FROM TB_FORNECEDORES WHERE CODFORNECEDOR = $id;',
+);
+
+AgroEntityConfig inseminationTypesConfig() => simpleTableCatalogConfig(
+  title: 'Tipos de IA',
+  table: 'TB_TIPOIA',
+  idColumn: 'CODTIPOIA',
+  descriptionColumn: 'TIPOIA',
+);
+
+AgroEntityConfig breedsConfig() => AgroEntityConfig(
+  title: 'Raças',
+  table: 'TB_RACA',
+  idColumn: 'CODRACA',
+  uniqueColumn: 'RACA',
+  listColumns: const ['FRACAO'],
+  query: 'SELECT R.CODRACA, R.RACA, R.IDGRAUSANGUE, G.FRACAO FROM TB_RACA R INNER JOIN TB_GRAUSANGUE G ON R.IDGRAUSANGUE = G.IDGRAUSANGUE ORDER BY R.IDGRAUSANGUE',
+  fields: const [
+    AgroField('RACA', 'Raça', required: true),
+    AgroField(
+      'IDGRAUSANGUE',
+      'Grau de sangue',
+      required: true,
+      optionsQuery: 'SELECT IDGRAUSANGUE, FRACAO FROM TB_GRAUSANGUE ORDER BY DECIMAL, FRACAO',
+      optionsValueColumn: 'IDGRAUSANGUE',
+      optionsLabelColumn: 'FRACAO',
+    ),
+    AgroField('FRACAO', 'Grau de sangue', showInForm: false),
+  ],
+  saveSql: (id, values) =>
+      'EXEC SP_TB_RACA_INSERT_UPDATE $id, ${sqlText((values['RACA'] ?? '').toUpperCase())}, ${sqlNumber(values['IDGRAUSANGUE'] ?? '')};',
+  deleteSql: (id) => 'EXEC SP_TB_RACA_DELETE $id;',
 );
