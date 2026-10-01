@@ -6,6 +6,7 @@ import 'animals_roster_page.dart';
 import 'animal_carency_page.dart';
 import 'animal_diagnosis_page.dart';
 import 'animal_birth_page.dart';
+import 'animal_abortion_page.dart';
 import 'animal_body_condition_page.dart';
 import 'animal_dry_off_page.dart';
 import 'animal_insemination_page.dart';
@@ -479,6 +480,8 @@ class ModulePage extends StatelessWidget {
         ];
       case 'Serviços':
         return const [
+          _ModuleEntry('Registrar aborto', Icons.healing_outlined),
+          _ModuleEntry('Estornar aborto', Icons.undo_outlined),
           _ModuleEntry('Animais carência', Icons.medical_services_outlined),
           _ModuleEntry('Controle leiteiro', Icons.water_drop_outlined),
           _ModuleEntry('Pesagem', Icons.monitor_weight_outlined),
@@ -654,6 +657,12 @@ class ModulePage extends StatelessWidget {
                       }
                       if (entry.label == 'Animais carência') {
                         return const AnimalCarencyPage();
+                      }
+                      if (entry.label == 'Registrar aborto') {
+                        return const AnimalAbortionPage();
+                      }
+                      if (entry.label == 'Estornar aborto') {
+                        return const AnimalAbortionPage(reverse: true);
                       }
                       if (entry.label == 'Diagnóstico gestacional') {
                         return const AnimalDiagnosisPage();

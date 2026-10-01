@@ -17,6 +17,7 @@ import 'package:cowsystem/data/animal_details_repository.dart';
 import 'package:cowsystem/data/animal_carency_repository.dart';
 import 'package:cowsystem/data/animal_diagnosis_repository.dart';
 import 'package:cowsystem/data/animal_body_condition_repository.dart';
+import 'package:cowsystem/data/animal_abortion_repository.dart';
 import 'package:cowsystem/data/animal_insemination_repository.dart';
 import 'package:cowsystem/data/animal_birth_repository.dart';
 import 'package:cowsystem/data/animal_dry_off_repository.dart';
@@ -27,6 +28,45 @@ import 'package:cowsystem/data/number_format.dart';
 import 'package:cowsystem/main.dart';
 
 void main() {
+  test('gera procedimentos distintos para registrar e estornar aborto', () {
+    expect(
+      abortionRegisterSql(
+        date: '15/05/2026',
+        animalCode: 43,
+        withLactation: 1,
+        comment: "ABORTO D'ÁGUA",
+        destinationLot: 5,
+        newLactation: 2,
+      ),
+      "EXEC SP_TB_ABORTO_INSERT '2026-05-15', 43, 1, "
+      "N'ABORTO D''ÁGUA', 5, 2;",
+    );
+    expect(
+      abortionReverseSql(
+        date: '15/05/2026',
+        animalCode: 43,
+        productionStatus: 'EM LEITE',
+        reproductiveStatus: 'VAZIA',
+        keepPregnancy: 2,
+        destinationLot: 4,
+        comment: "ESTORNO D'ÁGUA",
+      ),
+      "EXEC SP_TB_ABORTO_ESTORNO '2026-05-15', 43, N'EM LEITE', "
+      "N'VAZIA', 2, 4, N'ESTORNO D''ÁGUA';",
+    );
+    expect(
+      () => abortionRegisterSql(
+        date: '31/02/2026',
+        animalCode: 43,
+        withLactation: 1,
+        comment: '',
+        destinationLot: 5,
+        newLactation: 2,
+      ),
+      throwsFormatException,
+    );
+  });
+
   test('protege exclusão de sessão ECC com avaliações informadas', () {
     expect(
       bodyConditionCreateSessionSql('14/05/2026', 5),
