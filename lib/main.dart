@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:android_id/android_id.dart';
 
 import 'animals_roster_page.dart';
+import 'animal_carency_page.dart';
 import 'animal_weight_page.dart';
 import 'data/animal_record.dart';
 import 'data/animal_repository.dart';
@@ -471,6 +472,7 @@ class ModulePage extends StatelessWidget {
         ];
       case 'Serviços':
         return const [
+          _ModuleEntry('Animais carência', Icons.medical_services_outlined),
           _ModuleEntry('Controle leiteiro', Icons.water_drop_outlined),
           _ModuleEntry('Pesagem', Icons.monitor_weight_outlined),
           _ModuleEntry('Inseminação', Icons.science_outlined),
@@ -642,6 +644,9 @@ class ModulePage extends StatelessWidget {
                       }
                       if (entry.label == 'Perfil') {
                         return const ProfilePermissionsPage();
+                      }
+                      if (entry.label == 'Animais carência') {
+                        return const AnimalCarencyPage();
                       }
                       if (entry.label == 'Pesagem') {
                         return const AnimalWeightPage();

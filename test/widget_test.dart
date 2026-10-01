@@ -14,12 +14,61 @@ import 'package:cowsystem/animal_roster_filter_sheet.dart';
 import 'package:cowsystem/animal_lactation_grid.dart';
 import 'package:cowsystem/animal_selection_menu.dart';
 import 'package:cowsystem/data/animal_details_repository.dart';
+import 'package:cowsystem/data/animal_carency_repository.dart';
 import 'package:cowsystem/data/animal_record.dart';
 import 'package:cowsystem/data/client_routing.dart';
 import 'package:cowsystem/data/number_format.dart';
 import 'package:cowsystem/main.dart';
 
 void main() {
+  test('monta a consulta paginada de carências com filtros escapados', () {
+    final query = animalCarencyQuery(
+      tag: "A'43",
+      type: "LEITE",
+      offset: 200,
+      limit: 50,
+    );
+
+    expect(query, contains('dbo.LISTA_ANIMAIS_CARENCIA()'));
+    expect(query, contains("BRINCO = N'A''43'"));
+    expect(query, contains("TIPO = N'LEITE'"));
+    expect(query, contains('ORDER BY TRY_CONVERT(date, DATA_SAIDA, 103)'));
+    expect(query, contains('OFFSET 200 ROWS FETCH NEXT 50 ROWS ONLY'));
+    expect(() => animalCarencyQuery(offset: -1), throwsArgumentError);
+  });
+
+  test('mapeia animal e locais de carência da função B4A', () {
+    final record = AnimalCarencyRecord.fromJson({
+      'CODANIMAL': 43,
+      'BRINCO': '43',
+      'STATUSREPRODUCAO': 'VAZIA',
+      'DATANASCIMENTO': '2022-05-03',
+      'STATUSPRODUCAO': 'EM LEITE',
+      'ULTIMOPARTO': '2025-01-10',
+      'LOTE': 'ALTA',
+      'RACA': 'GIROLANDO',
+      'DEL': 110,
+      'ATIVO': 1,
+      'ADESCARTAR': 0,
+      'CODLACTACAO': '2025011001',
+      'TIPO': 'ANTIBIÓTICO',
+      'DATA_SAIDA': '15/10/2026',
+      'TT': 0,
+      'TE': 1,
+      'TD': 0,
+      'DE': 0,
+      'DD': 1,
+    });
+
+    expect(record.animal.tag, '43');
+    expect(record.animal.lotName, 'ALTA');
+    expect(record.animal.daysInMilk, 110);
+    expect(record.type, 'ANTIBIÓTICO');
+    expect(record.exitDate, '15/10/2026');
+    expect(record.treatmentUdder, 1);
+    expect(record.discardRight, 1);
+  });
+
   test('configura tabelas auxiliares pelo contrato B4A', () {
     final config = simpleTableCatalogConfig(
       title: 'Doenças',
