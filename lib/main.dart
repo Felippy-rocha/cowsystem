@@ -495,10 +495,12 @@ class ModulePage extends StatelessWidget {
           _ModuleEntry('Aplicar BST', Icons.medical_services_outlined),
           _ModuleEntry('Aplicar tratamento', Icons.medical_services_outlined),
           _ModuleEntry('Atualizar MS', Icons.opacity_outlined),
+          _ModuleEntry('Avaliação de ECC', Icons.monitor_weight_outlined),
           _ModuleEntry('Diagnóstico gestacional', Icons.monitor_heart_outlined),
           _ModuleEntry('Parto', Icons.child_friendly_outlined),
           _ModuleEntry('Registrar desmame', Icons.swap_horiz_outlined),
           _ModuleEntry('Registrar secagem', Icons.opacity_outlined),
+          _ModuleEntry('Pré-Parto', Icons.pregnant_woman_outlined),
           _ModuleEntry('Casqueamento', Icons.content_cut_outlined),
         ];
       case 'Relatorios':
