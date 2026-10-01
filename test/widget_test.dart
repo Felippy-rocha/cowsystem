@@ -41,6 +41,14 @@ import 'package:cowsystem/data/number_format.dart';
 import 'package:cowsystem/main.dart';
 
 void main() {
+  test('gera procedure de associação RFID com escape', () {
+    expect(
+      animalChipAssociationSql(43, "RF'ID01"),
+      "EXEC SP_TB_ANIMAIS_INCLUIR_CHIP 43, 'RF''ID01';",
+    );
+    expect(() => animalChipAssociationSql(0, 'RFID01'), throwsArgumentError);
+  });
+
   test('gera procedures de criação e conferência de insumos gerais', () {
     expect(
       generalSupplyInventoryCreateSql(6),

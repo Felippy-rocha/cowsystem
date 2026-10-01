@@ -21,6 +21,7 @@ import 'dry_matter_history_page.dart';
 import 'animal_protocol_page.dart';
 import 'animal_feeding_page.dart';
 import 'animal_cycles_page.dart';
+import 'rfid_association_page.dart';
 import 'general_supply_inventory_page.dart';
 import 'data/animal_record.dart';
 import 'data/animal_repository.dart';
@@ -498,6 +499,7 @@ class ModulePage extends StatelessWidget {
           _ModuleEntry('Incluir BST', Icons.medical_services_outlined),
           _ModuleEntry('Aplicar BST', Icons.medical_services_outlined),
           _ModuleEntry('Inventariar', Icons.inventory_2_outlined),
+          _ModuleEntry('Leitor RFID', Icons.nfc_outlined),
           _ModuleEntry('Protocolar', Icons.assignment_outlined),
           _ModuleEntry('Tratos', Icons.restaurant_outlined),
           _ModuleEntry('Taxa de serviço', Icons.insights_outlined),
@@ -700,6 +702,9 @@ class ModulePage extends StatelessWidget {
                       }
                       if (entry.label == 'Inventariar') {
                         return const InventoryMenuPage();
+                      }
+                      if (entry.label == 'Leitor RFID') {
+                        return const RfidAssociationPage();
                       }
                       if (entry.label == 'Aplicar BST') {
                         return const AnimalBstApplicationPage();
