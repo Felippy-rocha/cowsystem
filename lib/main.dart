@@ -25,6 +25,7 @@ import 'animal_diet_page.dart';
 import 'lot_analysis_page.dart';
 import 'herd_summary_page.dart';
 import 'consumption_analysis_page.dart';
+import 'calving_forecast_page.dart';
 import 'prevision_touch_page.dart';
 import 'open_tasks_page.dart';
 import 'touch_session_page.dart';
@@ -530,6 +531,7 @@ class ModulePage extends StatelessWidget {
           _ModuleEntry('Analise de consumo', Icons.analytics_outlined),
           _ModuleEntry('Analise de partos', Icons.family_restroom_outlined),
           _ModuleEntry('Previsao de toque', Icons.event_available_outlined),
+          _ModuleEntry('Previsão de partos', Icons.family_restroom_outlined),
           _ModuleEntry('Tarefas em aberto', Icons.checklist_outlined),
         ];
       case 'Ajustes':
@@ -742,6 +744,9 @@ class ModulePage extends StatelessWidget {
                       }
                       if (entry.label == 'Previsao de toque') {
                         return const PrevisionTouchPage();
+                      }
+                      if (entry.label == 'Previsão de partos') {
+                        return const CalvingForecastPage();
                       }
                       if (entry.label == 'Tarefas em aberto') {
                         return const OpenTasksPage();
@@ -959,10 +964,12 @@ class _LotsPageState extends State<LotsPage> {
       trailing: PopupMenuButton<String>(
         tooltip: 'Opcoes do lote',
         onSelected: (action) {
-          if (action == 'edit' && _lotActionAllowed('ALTERAR'))
+          if (action == 'edit' && _lotActionAllowed('ALTERAR')) {
             _openLotForm(lot);
-          if (action == 'delete' && _lotActionAllowed('EXCLUIR'))
+          }
+          if (action == 'delete' && _lotActionAllowed('EXCLUIR')) {
             _confirmDelete(lot);
+          }
         },
         itemBuilder: (_) => [
           PopupMenuItem(
@@ -1030,10 +1037,12 @@ class _LotsPageState extends State<LotsPage> {
           tooltip: 'Acoes do lote',
           icon: const Icon(Icons.more_horiz, size: 24),
           onSelected: (action) {
-            if (action == 'edit' && _lotActionAllowed('ALTERAR'))
+            if (action == 'edit' && _lotActionAllowed('ALTERAR')) {
               _openLotForm(lot);
-            if (action == 'delete' && _lotActionAllowed('EXCLUIR'))
+            }
+            if (action == 'delete' && _lotActionAllowed('EXCLUIR')) {
               _confirmDelete(lot);
+            }
           },
           itemBuilder: (_) => [
             PopupMenuItem(
@@ -1187,8 +1196,9 @@ class _LotsPageState extends State<LotsPage> {
     } on SoapException catch (error) {
       if (mounted) setState(() => _errorMessage = error.message);
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         setState(() => _errorMessage = 'Nao foi possivel consultar o Azure.');
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

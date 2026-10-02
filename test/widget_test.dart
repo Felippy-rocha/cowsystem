@@ -32,6 +32,7 @@ import 'package:cowsystem/data/touch_session_repository.dart';
 import 'package:cowsystem/data/herd_summary_repository.dart';
 import 'package:cowsystem/data/milk_summary_repository.dart';
 import 'package:cowsystem/data/consumption_analysis_repository.dart';
+import 'package:cowsystem/data/calving_forecast_repository.dart';
 import 'package:cowsystem/data/open_tasks_repository.dart';
 import 'package:cowsystem/data/birth_analysis_repository.dart';
 import 'package:cowsystem/data/prevision_touch_repository.dart';
@@ -90,6 +91,13 @@ void main() {
     expect(
       () => previsionTouchGenerateSql('31/02/2026'),
       throwsFormatException,
+    );
+  });
+
+  test('gera previsão de partos', () {
+    expect(
+      calvingForecastGenerateSql(),
+      'EXEC SP_TB_PREVISAO_PARTOS_INSERT;',
     );
   });
 
