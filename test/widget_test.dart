@@ -34,6 +34,7 @@ import 'package:cowsystem/data/milk_summary_repository.dart';
 import 'package:cowsystem/data/consumption_analysis_repository.dart';
 import 'package:cowsystem/data/calving_forecast_repository.dart';
 import 'package:cowsystem/data/animal_milk_summary_repository.dart';
+import 'package:cowsystem/data/annual_milk_summary_repository.dart';
 import 'package:cowsystem/data/open_tasks_repository.dart';
 import 'package:cowsystem/data/birth_analysis_repository.dart';
 import 'package:cowsystem/data/prevision_touch_repository.dart';
@@ -107,6 +108,28 @@ void main() {
     );
     expect(() => animalMilkSummarySql(0, '2'), throwsArgumentError);
     expect(() => animalMilkSummarySql(123, ''), throwsArgumentError);
+  });
+
+  test('gera consultas do resumo de leite anual', () {
+    expect(
+      annualMilkSummarySql(2026),
+      'SELECT PERIODO, TOTAL_LEITE, ANIMAIS, MEDIA, DEL '
+      'FROM dbo.RESUMO_LEITE_ANUAL(2026)',
+    );
+    expect(
+      annualMilkBreedSql(2026),
+      'SELECT RACA, MEDIA, TOTAL_LEITE '
+      'FROM dbo.RESUMO_LEITE_ANUAL_RACA(2026)',
+    );
+    expect(
+      annualMilkLactationSql(2026),
+      contains('RESUMO_LEITE_ANUAL_NUMLACTACOES(2026)'),
+    );
+    expect(
+      annualMilkLactationSql(2026),
+      contains('RESUMO_LEITE_ANUAL_NUMLACTACOES(2025)'),
+    );
+    expect(() => annualMilkSummarySql(0), throwsArgumentError);
   });
 
   test('gera análise de consumo mensal e diária', () {
