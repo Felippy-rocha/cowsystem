@@ -26,6 +26,7 @@ import 'lot_analysis_page.dart';
 import 'herd_summary_page.dart';
 import 'consumption_analysis_page.dart';
 import 'calving_forecast_page.dart';
+import 'animal_milk_summary_page.dart';
 import 'prevision_touch_page.dart';
 import 'open_tasks_page.dart';
 import 'touch_session_page.dart';
@@ -528,6 +529,7 @@ class ModulePage extends StatelessWidget {
         return const [
           _ModuleEntry('Resumo do rebanho', Icons.pets_outlined),
           _ModuleEntry('Resumo de leite', Icons.water_drop_outlined),
+          _ModuleEntry('Resumo leite por animal', Icons.agriculture_outlined),
           _ModuleEntry('Analise de consumo', Icons.analytics_outlined),
           _ModuleEntry('Analise de partos', Icons.family_restroom_outlined),
           _ModuleEntry('Previsao de toque', Icons.event_available_outlined),
@@ -747,6 +749,9 @@ class ModulePage extends StatelessWidget {
                       }
                       if (entry.label == 'Previsão de partos') {
                         return const CalvingForecastPage();
+                      }
+                      if (entry.label == 'Resumo leite por animal') {
+                        return const AnimalMilkSummaryPage();
                       }
                       if (entry.label == 'Tarefas em aberto') {
                         return const OpenTasksPage();

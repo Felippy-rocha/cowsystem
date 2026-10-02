@@ -33,6 +33,7 @@ import 'package:cowsystem/data/herd_summary_repository.dart';
 import 'package:cowsystem/data/milk_summary_repository.dart';
 import 'package:cowsystem/data/consumption_analysis_repository.dart';
 import 'package:cowsystem/data/calving_forecast_repository.dart';
+import 'package:cowsystem/data/animal_milk_summary_repository.dart';
 import 'package:cowsystem/data/open_tasks_repository.dart';
 import 'package:cowsystem/data/birth_analysis_repository.dart';
 import 'package:cowsystem/data/prevision_touch_repository.dart';
@@ -95,10 +96,17 @@ void main() {
   });
 
   test('gera previsão de partos', () {
+    expect(calvingForecastGenerateSql(), 'EXEC SP_TB_PREVISAO_PARTOS_INSERT;');
+  });
+
+  test('gera consulta do resumo de leite por animal e lactação', () {
     expect(
-      calvingForecastGenerateSql(),
-      'EXEC SP_TB_PREVISAO_PARTOS_INSERT;',
+      animalMilkSummarySql(123, '2'),
+      "SELECT CODANIMAL, DATA, TOTAL_LEITE, DEL, CODLACTACAO, "
+      "TIPO_CARENCIA FROM DBO.RESUMO_LEITE_ANIMAL(123, '2')",
     );
+    expect(() => animalMilkSummarySql(0, '2'), throwsArgumentError);
+    expect(() => animalMilkSummarySql(123, ''), throwsArgumentError);
   });
 
   test('gera análise de consumo mensal e diária', () {
