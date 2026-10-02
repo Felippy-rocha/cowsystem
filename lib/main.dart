@@ -29,6 +29,7 @@ import 'calving_forecast_page.dart';
 import 'animal_milk_summary_page.dart';
 import 'annual_milk_summary_page.dart';
 import 'daily_milk_summary_page.dart';
+import 'milk_history_page.dart';
 import 'prevision_touch_page.dart';
 import 'open_tasks_page.dart';
 import 'touch_session_page.dart';
@@ -534,6 +535,7 @@ class ModulePage extends StatelessWidget {
           _ModuleEntry('Resumo leite por animal', Icons.agriculture_outlined),
           _ModuleEntry('Resumo leite anual', Icons.date_range_outlined),
           _ModuleEntry('Resumo leite diário', Icons.today_outlined),
+          _ModuleEntry('Resumo leite histórico', Icons.history_outlined),
           _ModuleEntry('Analise de consumo', Icons.analytics_outlined),
           _ModuleEntry('Analise de partos', Icons.family_restroom_outlined),
           _ModuleEntry('Previsao de toque', Icons.event_available_outlined),
@@ -762,6 +764,9 @@ class ModulePage extends StatelessWidget {
                       }
                       if (entry.label == 'Resumo leite diário') {
                         return const DailyMilkSummaryPage();
+                      }
+                      if (entry.label == 'Resumo leite histórico') {
+                        return const MilkHistoryPage();
                       }
                       if (entry.label == 'Tarefas em aberto') {
                         return const OpenTasksPage();
