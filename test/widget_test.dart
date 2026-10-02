@@ -39,6 +39,7 @@ import 'package:cowsystem/data/daily_milk_summary_repository.dart';
 import 'package:cowsystem/data/milk_history_repository.dart';
 import 'package:cowsystem/data/del_range_summary_repository.dart';
 import 'package:cowsystem/data/bst_consumption_estimate_repository.dart';
+import 'package:cowsystem/data/genetic_plan_repository.dart';
 import 'package:cowsystem/data/open_tasks_repository.dart';
 import 'package:cowsystem/data/birth_analysis_repository.dart';
 import 'package:cowsystem/data/prevision_touch_repository.dart';
@@ -178,6 +179,14 @@ void main() {
       'FROM dbo.BST_ESTIMATIVA_CONSUMO(90)',
     );
     expect(() => bstConsumptionEstimateSql(0), throwsArgumentError);
+  });
+
+  test('gera plano genético para a data escolhida', () {
+    expect(
+      geneticPlanGenerateSql('24/05/2026'),
+      "EXEC SP_GERAR_PLANOGENETICO '2026-05-24'",
+    );
+    expect(() => geneticPlanGenerateSql('31/02/2026'), throwsFormatException);
   });
 
   test('gera análise de consumo mensal e diária', () {
