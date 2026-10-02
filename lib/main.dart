@@ -31,6 +31,7 @@ import 'annual_milk_summary_page.dart';
 import 'daily_milk_summary_page.dart';
 import 'milk_history_page.dart';
 import 'del_range_summary_page.dart';
+import 'bst_consumption_estimate_page.dart';
 import 'prevision_touch_page.dart';
 import 'open_tasks_page.dart';
 import 'touch_session_page.dart';
@@ -538,6 +539,7 @@ class ModulePage extends StatelessWidget {
           _ModuleEntry('Resumo leite diário', Icons.today_outlined),
           _ModuleEntry('Resumo leite histórico', Icons.history_outlined),
           _ModuleEntry('Resumo por faixa DEL', Icons.bar_chart_outlined),
+          _ModuleEntry('Estimativa consumo BST', Icons.vaccines_outlined),
           _ModuleEntry('Analise de consumo', Icons.analytics_outlined),
           _ModuleEntry('Analise de partos', Icons.family_restroom_outlined),
           _ModuleEntry('Previsao de toque', Icons.event_available_outlined),
@@ -772,6 +774,9 @@ class ModulePage extends StatelessWidget {
                       }
                       if (entry.label == 'Resumo por faixa DEL') {
                         return const DelRangeSummaryPage();
+                      }
+                      if (entry.label == 'Estimativa consumo BST') {
+                        return const BstConsumptionEstimatePage();
                       }
                       if (entry.label == 'Tarefas em aberto') {
                         return const OpenTasksPage();

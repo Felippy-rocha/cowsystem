@@ -38,6 +38,7 @@ import 'package:cowsystem/data/annual_milk_summary_repository.dart';
 import 'package:cowsystem/data/daily_milk_summary_repository.dart';
 import 'package:cowsystem/data/milk_history_repository.dart';
 import 'package:cowsystem/data/del_range_summary_repository.dart';
+import 'package:cowsystem/data/bst_consumption_estimate_repository.dart';
 import 'package:cowsystem/data/open_tasks_repository.dart';
 import 'package:cowsystem/data/birth_analysis_repository.dart';
 import 'package:cowsystem/data/prevision_touch_repository.dart';
@@ -167,6 +168,16 @@ void main() {
     );
     expect(() => delRangeMonthlySql('2026'), throwsArgumentError);
     expect(() => delRangeAnnualSql(0), throwsArgumentError);
+  });
+
+  test('gera consulta da estimativa de consumo de BST', () {
+    expect(
+      bstConsumptionEstimateSql(90),
+      'SELECT CODANIMAL, BRINCO, STATUSREPRODUCAO, DEL, DP, INTERVALO, '
+      'DOSES_PRENHES, DOSES, TOTAL, MEDIA '
+      'FROM dbo.BST_ESTIMATIVA_CONSUMO(90)',
+    );
+    expect(() => bstConsumptionEstimateSql(0), throwsArgumentError);
   });
 
   test('gera análise de consumo mensal e diária', () {
