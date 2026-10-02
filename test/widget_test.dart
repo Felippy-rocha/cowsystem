@@ -35,6 +35,8 @@ import 'package:cowsystem/data/consumption_analysis_repository.dart';
 import 'package:cowsystem/data/calving_forecast_repository.dart';
 import 'package:cowsystem/data/animal_milk_summary_repository.dart';
 import 'package:cowsystem/data/annual_milk_summary_repository.dart';
+import 'package:cowsystem/data/daily_milk_summary_repository.dart';
+import 'package:cowsystem/data/daily_milk_summary_repository.dart';
 import 'package:cowsystem/data/open_tasks_repository.dart';
 import 'package:cowsystem/data/birth_analysis_repository.dart';
 import 'package:cowsystem/data/prevision_touch_repository.dart';
@@ -130,6 +132,17 @@ void main() {
       contains('RESUMO_LEITE_ANUAL_NUMLACTACOES(2025)'),
     );
     expect(() => annualMilkSummarySql(0), throwsArgumentError);
+  });
+
+  test('gera consulta do resumo de leite diário', () {
+    expect(
+      dailyMilkSummarySql('24/05/2026'),
+      "SELECT DATA, CODANIMAL, CODLOTE, LOTE, BRINCO, PESO1, PESO2, "
+      "PESO3, TOTAL, DEL, NUMLACTACOES, STATUSREPRODUCAO, CODLACTACAO, "
+      "NUMIAS, DP_DUI, ADESCARTAR, RACA "
+      "FROM dbo.RESUMO_LEITE_DIARIO('2026-05-24')",
+    );
+    expect(() => dailyMilkSummarySql('31/02/2026'), throwsFormatException);
   });
 
   test('gera análise de consumo mensal e diária', () {
