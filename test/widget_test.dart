@@ -37,6 +37,7 @@ import 'package:cowsystem/data/animal_milk_summary_repository.dart';
 import 'package:cowsystem/data/annual_milk_summary_repository.dart';
 import 'package:cowsystem/data/daily_milk_summary_repository.dart';
 import 'package:cowsystem/data/milk_history_repository.dart';
+import 'package:cowsystem/data/del_range_summary_repository.dart';
 import 'package:cowsystem/data/open_tasks_repository.dart';
 import 'package:cowsystem/data/birth_analysis_repository.dart';
 import 'package:cowsystem/data/prevision_touch_repository.dart';
@@ -151,6 +152,21 @@ void main() {
       'SELECT ANO, TOTAL_LEITE, NUM_ANIMAIS, MEDIA, DEL '
       'FROM dbo.RESUMO_LEITE_HISTORICO()',
     );
+  });
+
+  test('gera consultas do resumo por faixa DEL', () {
+    expect(
+      delRangeMonthlySql('05/2026'),
+      "SELECT FAIXA, TOTAL_LEITE, NUM_ANIMAIS, MEDIA, DEL_MEDIO AS DEL "
+      "FROM dbo.RESUMO_LEITE_FAIXA_DEL_MENSAL('05/2026')",
+    );
+    expect(
+      delRangeAnnualSql(2026),
+      'SELECT FAIXA, TOTAL_LEITE, NUM_ANIMAIS, MEDIA, DEL_MEDIO AS DEL '
+      'FROM dbo.RESUMO_LEITE_FAIXA_DEL_ANUAL(2026)',
+    );
+    expect(() => delRangeMonthlySql('2026'), throwsArgumentError);
+    expect(() => delRangeAnnualSql(0), throwsArgumentError);
   });
 
   test('gera análise de consumo mensal e diária', () {
