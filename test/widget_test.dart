@@ -40,6 +40,7 @@ import 'package:cowsystem/data/milk_history_repository.dart';
 import 'package:cowsystem/data/del_range_summary_repository.dart';
 import 'package:cowsystem/data/bst_consumption_estimate_repository.dart';
 import 'package:cowsystem/data/genetic_plan_repository.dart';
+import 'package:cowsystem/data/genoma_repository.dart';
 import 'package:cowsystem/data/open_tasks_repository.dart';
 import 'package:cowsystem/data/birth_analysis_repository.dart';
 import 'package:cowsystem/data/prevision_touch_repository.dart';
@@ -187,6 +188,18 @@ void main() {
       "EXEC SP_GERAR_PLANOGENETICO '2026-05-24'",
     );
     expect(() => geneticPlanGenerateSql('31/02/2026'), throwsFormatException);
+  });
+
+  test('gera consulta de genomas com join de animais', () {
+    expect(
+      genomaSql(),
+      'SELECT TB_ANIMAIS.BRINCO, IC, NM, LEITE, GOR, PRO, VP, DPR, CCR, '
+      'HCR, CUB, CCS, BETAC FROM TB_GENOMAS '
+      'INNER JOIN TB_ANIMAIS ON TB_ANIMAIS.CODANIMAL = TB_GENOMAS.CODANIMAL '
+      'WHERE TB_GENOMAS.CODANIMAL IS NOT NULL '
+      'ORDER BY TB_ANIMAIS.BRINCO',
+    );
+    expect(genomaSql(tag: '123'), contains("BRINCO LIKE '%123%'"));
   });
 
   test('gera análise de consumo mensal e diária', () {
